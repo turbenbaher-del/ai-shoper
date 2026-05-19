@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 from fastapi import FastAPI, Request
@@ -13,11 +14,32 @@ if settings.sentry_dsn:
     sentry_sdk.init(dsn=settings.sentry_dsn, environment=settings.env)
 
 logging.basicConfig(level=getattr(logging, settings.log_level))
+logger = logging.getLogger(__name__)
+
+
+def _run_migrations() -> None:
+    try:
+        from alembic.config import Config
+        from alembic import command
+        cfg = Config("alembic.ini")
+        command.upgrade(cfg, "head")
+        logger.info("Alembic migrations applied")
+    except Exception as e:
+        logger.error("Migration failed: %s", e)
+        raise
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _run_migrations()
+    yield
+
 
 app = FastAPI(
     title="AI-шопер API",
     version="1.0.0",
     docs_url="/docs" if settings.env != "production" else None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -34,9 +56,6 @@ app.include_router(search.router, prefix=API_PREFIX)
 app.include_router(tracked.router, prefix=API_PREFIX)
 app.include_router(subscription.router, prefix=API_PREFIX)
 app.include_router(webhook.router, prefix=API_PREFIX)
-
-
-logger = logging.getLogger(__name__)
 
 
 @app.exception_handler(RequestValidationError)
