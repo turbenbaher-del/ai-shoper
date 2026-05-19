@@ -23,12 +23,11 @@ async def _run_migrations() -> None:
         from alembic.config import Config
         from alembic import command
         cfg = Config("alembic.ini")
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, lambda: command.upgrade(cfg, "head"))
         logger.info("Alembic migrations applied")
     except Exception as e:
-        logger.error("Migration failed: %s", e)
-        raise
+        logger.error("Migration failed (app will start anyway): %s", e, exc_info=True)
 
 
 @asynccontextmanager
