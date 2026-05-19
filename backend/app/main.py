@@ -17,12 +17,14 @@ logging.basicConfig(level=getattr(logging, settings.log_level))
 logger = logging.getLogger(__name__)
 
 
-def _run_migrations() -> None:
+async def _run_migrations() -> None:
     try:
+        import asyncio
         from alembic.config import Config
         from alembic import command
         cfg = Config("alembic.ini")
-        command.upgrade(cfg, "head")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: command.upgrade(cfg, "head"))
         logger.info("Alembic migrations applied")
     except Exception as e:
         logger.error("Migration failed: %s", e)
@@ -31,7 +33,7 @@ def _run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _run_migrations()
+    await _run_migrations()
     yield
 
 
