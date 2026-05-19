@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Docker
+*.log
+
+# Alembic
+backend/alembic/versions/*.pyc
+
+# Sentry
+.sentryclirc
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Claude Code memory (private)
+.claude/
+
+# Extracted/archive files
+files.zip
+files_extracted/
+
+# Temp Office files
+~$*.pptx
+~$*.docx
+~$*.xlsx

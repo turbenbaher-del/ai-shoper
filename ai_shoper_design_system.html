@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-шопер · Дизайн-система</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #0A0E13;
+    --bg-surface: #161B22;
+    --bg-raised: #21262D;
+    --bg-high: #2D333B;
+    --text: #E6EDF3;
+    --text-mute: #9198A1;
+    --text-dim: #6E7681;
+    --accent: #00D9A6;
+    --accent-bright: #1FE5B6;
+    --accent-dim: #00B888;
+    --accent-soft: rgba(0, 217, 166, 0.12);
+    --green: #3FB950;
+    --amber: #D29922;
+    --red: #F85149;
+    --blue: #58A6FF;
+    --border: #30363D;
+    --border-soft: rgba(255, 255, 255, 0.06);
+
+    --r-sm: 6px;
+    --r-md: 8px;
+    --r-lg: 12px;
+    --r-xl: 16px;
+    --r-full: 999px;
+
+    --t-fast: 150ms;
+    --t-base: 200ms;
+    --t-slow: 400ms;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 0 80px;
+  }
+
+  /* ===== LAYOUT ===== */
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    padding: 32px 0;
+    margin-bottom: 48px;
+  }
+  .header__eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+  .header__title {
+    font-size: 48px;
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .header__sub {
+    color: var(--text-mute);
+    font-size: 17px;
+    max-width: 600px;
+  }
+
+  /* Sidebar nav */
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+  }
+
+  .nav {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    border-right: 1px solid var(--border);
+    padding-right: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  .nav__title {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .nav__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .nav__link {
+    display: block;
+    padding: 8px 12px;
+    color: var(--text-mute);
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: var(--r-md);
+    transition: all var(--t-base) var(--ease);
+  }
+  .nav__link:hover { color: var(--text); background: var(--bg-surface); }
+  .nav__link.is-active { color: var(--accent); background: var(--accent-soft); }
+
+  .nav__counter {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Section */
+  .section {
+    scroll-margin-top: 24px;
+    margin-bottom: 96px;
+  }
+  .section__head {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section__num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .section__title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .section__desc {
+    color: var(--text-mute);
+    font-size: 15px;
+    max-width: 720px;
+  }
+
+  /* Demo zone */
+  .demo {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  .demo--mobile {
+    display: flex;
+    justify-content: center;
+    padding: 48px 32px;
+  }
+  .demo--padded {
+    padding: 48px;
+  }
+
+  /* Mobile frame */
+  .phone {
+    width: 375px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  /* Spec block */
+  .spec {
+    background: var(--bg-surface);
+    border-left: 2px solid var(--accent);
+    padding: 16px 20px;
+    border-radius: 0 var(--r-md) var(--r-md) 0;
+    margin-top: 16px;
+  }
+  .spec__title {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .spec__text {
+    font-size: 13px;
+    color: var(--text-mute);
+    line-height: 1.6;
+  }
+  .spec__text code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-raised);
+    color: var(--text);
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    font-size: 12px;
+  }
+
+  /* ===== COMPONENT 1: COLOR PALETTE ===== */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .swatch {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    transition: transform var(--t-base) var(--ease);
+  }
+  .swatch:hover { transform: translateY(-2px); }
+  .swatch__color {
+    height: 96px;
+    border-bottom: 1px solid var(--border);
+  }
+  .swatch__info { padding: 12px 14px; }
+  .swatch__name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .swatch__hex {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-mute);
+  }
+  .swatch__var {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .swatch__color--accent { position: relative; }
+  .swatch__color--accent::after {
+    content: 'АКЦЕНТ';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.4);
+    color: var(--bg);
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+  }
+
+  /* ===== COMPONENT 2: TYPOGRAPHY ===== */
+  .type-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 32px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-soft);
+    align-items: baseline;
+  }
+  .type-row:last-child { border-bottom: none; }
+  .type-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-mute);
+    line-height: 1.6;
+  }
+  .type-meta strong { color: var(--accent); font-weight: 500; }
+  .type-display { font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+  .type-h1 { font-size: 24px; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; }
+  .type-h2 { font-size: 18px; font-weight: 600; line-height: 1.35; }
+  .type-body-l { font-size: 16px; font-weight: 500; line-height: 1.5; }
+  .type-body { font-size: 14px; font-weight: 400; line-height: 1.5; color: var(--text); }
+  .type-caption { font-size: 12px; font-weight: 400; line-height: 1.4; color: var(--text-mute); }
+  .type-tiny { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+
+  /* ===== COMPONENT 3: BUTTONS ===== */
+  .btn-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 20px;
+    height: 44px;
+    border-radius: var(--r-md);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--t-base) var(--ease);
+    border: none;
+    white-space: nowrap;
+  }
+  .btn i { font-size: 18px; }
+
+  /* Primary — главная кнопка действия */
+  .btn--primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn--primary:hover { background: var(--accent-bright); transform: translateY(-1px); }
+  .btn--primary:active { transform: translateY(0); background: var(--accent-dim); }
+
+  /* Secondary — второстепенное действие */
+  .btn--secondary {
+    background: var(--bg-raised);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn--secondary:hover { background: var(--bg-high); border-color: var(--text-dim); }
+  .btn--secondary:active { background: var(--bg-raised); }
+
+  /* Ghost — для шеринга, фильтров */
+  .btn--ghost {
+    background: transparent;
+    color: var(--text);
+  }
+  .btn--ghost:hover { background: var(--bg-raised); }
+
+  /* Danger — для удаления, отмены */
+  .btn--danger {
+    background: rgba(248, 81, 73, 0.1);
+    color: var(--red);
+    border: 1px solid rgba(248, 81, 73, 0.2);
+  }
+  .btn--danger:hover { background: rgba(248, 81, 73, 0.15); }
+
+  /* Sizes */
+  .btn--lg { height: 52px; padding: 0 28px; font-size: 16px; border-radius: var(--r-md); }
+  .btn--sm { height: 36px; padding: 0 14px; font-size: 13px; }
+  .btn--icon { width: 44px; padding: 0; }
+
+  /* Disabled */
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+
+  /* Block button — full width */
+  .btn--block {
+    width: 100%;
+  }
+
+  /* ===== COMPONENT 4: PRODUCT CARD ===== */
+  .product-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 16px;
+    transition: all var(--t-base) var(--ease);
+    cursor: pointer;
+    position: relative;
+  }
+  .product-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .product-card--winner {
+    border-color: var(--accent);
+    background: linear-gradient(180deg, rgba(0, 217, 166, 0.04) 0%, var(--bg-surface) 100%);
+  }
+
+  .product-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .product-card__rank {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .product-card__rank--gold { color: var(--accent); }
+  .product-card__rank-medal { font-size: 14px; }
+
+  .product-card__image {
+    background: var(--bg-raised);
+    border-radius: var(--r-md);
+    aspect-ratio: 4/3;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    font-size: 32px;
+  }
+
+  .product-card__name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+  .product-card__reason {
+    font-size: 12px;
+    color: var(--text-mute);
+    line-height: 1.4;
+    margin-bottom: 12px;
+  }
+
+  .product-card__prices {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: var(--bg);
+    border-radius: var(--r-md);
+  }
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+  .price-row__store { color: var(--text-mute); }
+  .price-row__amount {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .price-row--best .price-row__store {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .price-row--best .price-row__amount {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .product-card__actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ===== COMPONENT 5: INPUT ===== */
+  .input-wrap {
+    position: relative;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    transition: all var(--t-base) var(--ease);
+    display: flex;
+    align-items: center;
+  }
+  .input-wrap:hover { border-color: var(--text-dim); }
+  .input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  .input-wrap__icon {
+    padding: 0 12px 0 16px;
+    color: var(--text-dim);
+    font-size: 20px;
+    line-height: 0;
+  }
+
+  .input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 14px 16px 14px 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .input::placeholder { color: var(--text-dim); }
+
+  .input-wrap__voice {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-md);
+    cursor: pointer;
+    margin-right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--t-base) var(--ease);
+  }
+  .input-wrap__voice:hover { background: var(--accent-bright); }
+  .input-wrap__voice i { font-size: 20px; }
+
+  /* Voice listening state */
+  .voice-active {
+    background: rgba(248, 81, 73, 0.1) !important;
+    border-color: var(--red) !important;
+    color: var(--red) !important;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(248, 81, 73, 0); }
+  }
+
+  .input-suggestions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    color: var(--text-mute);
+    padding: 6px 12px;
+    border-radius: var(--r-full);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all var(--t-base) var(--ease);
+  }
+  .chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ===== COMPONENT 6: BADGE ===== */
+  .badge-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .badge i { font-size: 12px; }
+
+  .badge--success { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+  .badge--accent { background: var(--accent-soft); color: var(--accent); }
+  .badge--warning { background: rgba(210, 153, 34, 0.15); color: var(--amber); }
+  .badge--danger { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+  .badge--info { background: rgba(88, 166, 255, 0.15); color: var(--blue); }
+  .badge--mute { background: var(--bg-raised); color: var(--text-mute); }
+
+  /* ===== COMPONENT 7: LOADING ===== */
+  .loading-stages {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .stage {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-raised);
+    border-radius: var(--r-md);
+    transition: all var(--t-slow) var(--ease);
+  }
+  .stage--done {
+    background: var(--accent-soft);
+  }
+  .stage--active {
+    background: var(--bg-raised);
+    border: 1px solid var(--accent);
+  }
+
+  .stage__icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stage--done .stage__icon { color: var(--accent); }
+  .stage--active .stage__icon {
+    color: var(--accent);
+  }
+  .stage--pending .stage__icon { color: var(--text-dim); }
+
+  .stage__icon i { font-size: 20px; }
+
+  .stage__text {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .stage--pending .stage__text { color: var(--text-dim); }
+
+  .stage__progress {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  .stage--active .stage__progress { display: block; }
+  .stage--active .stage__icon { display: none; }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Skeleton */
+  .skeleton {
+    background: linear-gradient(90deg,
+      var(--bg-raised) 0%,
+      var(--bg-high) 50%,
+      var(--bg-raised) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--r-sm);
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ===== COMPONENT 8: EMPTY STATE ===== */
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 24px;
+  }
+  .empty__icon {
+    width: 64px;
+    height: 64px;
+    background: var(--bg-raised);
+    border-radius: var(--r-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .empty__icon i { font-size: 28px; }
+  .empty__title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .empty__desc {
+    font-size: 13px;
+    color: var(--text-mute);
+    margin-bottom: 20px;
+    max-width: 260px;
+  }
+
+  /* ===== COMPONENT 9: PAYWALL ===== */
+  .paywall {
+    background: var(--bg-surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--r-xl);
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .paywall::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .paywall__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 4px 10px;
+    border-radius: var(--r-full);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .paywall__title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .paywall__desc {
+    font-size: 14px;
+    color: var(--text-mute);
+    margin-bottom: 20px;
+  }
+  .paywall__features {
+    list-style: none;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .paywall__feature {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .paywall__feature i {
+    color: var(--accent);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .paywall__plans {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .plan {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all var(--t-base) var(--ease);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .plan:hover { border-color: var(--text-dim); }
+  .plan.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .plan__name {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .plan__sub {
+    font-size: 12px;
+    color: var(--text-mute);
+  }
+  .plan__price {
+    text-align: right;
+  }
+  .plan__amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .plan__discount {
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 2px;
+  }
+
+  /* ===== COMPONENT 10: BOTTOM SHEET ===== */
+  .bsheet-demo {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    overflow: hidden;
+    height: 480px;
+    position: relative;
+  }
+  .bsheet-bg {
+    height: 100%;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(0,217,166,0.05) 0%, transparent 50%),
+      var(--bg);
+    padding: 24px;
+  }
+  .bsheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface);
+    border-top-left-radius: var(--r-xl);
+    border-top-right-radius: var(--r-xl);
+    border-top: 1px solid var(--border);
+    padding: 8px 20px 24px;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  }
+  .bsheet__handle {
+    width: 40px;
+    height: 4px;
+    background: var(--bg-high);
+    border-radius: var(--r-full);
+    margin: 0 auto 16px;
+  }
+  .bsheet__title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .bsheet__options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bsheet__option {
+    padding: 12px 16px;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background var(--t-base) var(--ease);
+  }
+  .bsheet__option:hover { background: var(--bg-raised); }
+  .bsheet__option i {
+    color: var(--text-mute);
+    font-size: 20px;
+  }
+  .bsheet__option-text {
+    font-size: 15px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-dim);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+    margin-top: 64px;
+  }
+
+  /* Responsive */
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+    .nav { position: static; border-right: none; padding-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 24px; }
+    .type-row { grid-template-columns: 1fr; gap: 8px; }
+    .header__title { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="container">
+    <div class="header__eyebrow">AI-шопер · UX роудмап · Этап 4</div>
+    <h1 class="header__title">Дизайн-система</h1>
+    <p class="header__sub">10 базовых компонентов, mobile-first. Готово для копирования в Telegram Mini App.</p>
+  </div>
+</header>
+
+<div class="container">
+<div class="layout">
+
+  <!-- ============ NAV ============ -->
+  <aside class="nav">
+    <div class="nav__title">Компоненты</div>
+    <ul class="nav__list">
+      <li><a href="#palette" class="nav__link is-active">Палитра <span class="nav__counter">01</span></a></li>
+      <li><a href="#typography" class="nav__link">Типографика <span class="nav__counter">02</span></a></li>
+      <li><a href="#buttons" class="nav__link">Кнопки <span class="nav__counter">03</span></a></li>
+      <li><a href="#cards" class="nav__link">Карточки товаров <span class="nav__counter">04</span></a></li>
+      <li><a href="#inputs" class="nav__link">Поля ввода <span class="nav__counter">05</span></a></li>
+      <li><a href="#badges" class="nav__link">Бейджи <span class="nav__counter">06</span></a></li>
+      <li><a href="#loading" class="nav__link">Загрузка <span class="nav__counter">07</span></a></li>
+      <li><a href="#empty" class="nav__link">Empty states <span class="nav__counter">08</span></a></li>
+      <li><a href="#paywall" class="nav__link">Пейволл <span class="nav__counter">09</span></a></li>
+      <li><a href="#bsheet" class="nav__link">Bottom sheet <span class="nav__counter">10</span></a></li>
+    </ul>
+  </aside>
+
+  <main>
+
+    <!-- ============ 1. PALETTE ============ -->
+    <section class="section" id="palette">
+      <div class="section__head">
+        <div class="section__num">01 / 10</div>
+        <h2 class="section__title">Палитра</h2>
+        <p class="section__desc">Тёмная база с одним ярким акцентом — бирюзово-зелёный #00D9A6. Никаких градиентов и пастельных тонов.</p>
+      </div>
+
+      <div class="label">Основные</div>
+      <div class="demo">
+        <div class="palette-grid">
+          <div class="swatch">
+            <div class="swatch__color" style="background:#0A0E13"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Фон основной</div>
+              <div class="swatch__hex">#0A0E13</div>
+              <div class="swatch__var">--bg</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#161B22"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Поверхности</div>
+              <div class="swatch__hex">#161B22</div>
+              <div class="swatch__var">--bg-surface</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#21262D"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Hover/divider</div>
+              <div class="swatch__hex">#21262D</div>
+              <div class="swatch__var">--bg-raised</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color swatch__color--accent" style="background:#00D9A6"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Акцент</div>
+              <div class="swatch__hex">#00D9A6</div>
+              <div class="swatch__var">--accent</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="label">Текст</div>
+      <div class="demo">
+        <div class="palette-grid">
+          <div class="swatch">
+            <div class="swatch__color" style="background:#E6EDF3"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Текст основной</div>
+              <div class="swatch__hex">#E6EDF3</div>
+              <div class="swatch__var">--text</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#9198A1"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Текст вторичный</div>
+              <div class="swatch__hex">#9198A1</div>
+              <div class="swatch__var">--text-mute</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#6E7681"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Текст-хинт</div>
+              <div class="swatch__hex">#6E7681</div>
+              <div class="swatch__var">--text-dim</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="label">Семантические</div>
+      <div class="demo">
+        <div class="palette-grid">
+          <div class="swatch">
+            <div class="swatch__color" style="background:#3FB950"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Success</div>
+              <div class="swatch__hex">#3FB950</div>
+              <div class="swatch__var">--green</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#D29922"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Warning</div>
+              <div class="swatch__hex">#D29922</div>
+              <div class="swatch__var">--amber</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#F85149"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Danger</div>
+              <div class="swatch__hex">#F85149</div>
+              <div class="swatch__var">--red</div>
+            </div>
+          </div>
+          <div class="swatch">
+            <div class="swatch__color" style="background:#58A6FF"></div>
+            <div class="swatch__info">
+              <div class="swatch__name">Info</div>
+              <div class="swatch__hex">#58A6FF</div>
+              <div class="swatch__var">--blue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Контраст текста на фоне: <code>--text</code> на <code>--bg</code> = 14.7:1 (AAA).
+          Акцент <code>--accent</code> на <code>--bg</code> = 6.8:1 (AA для крупного текста, AAA для интерактивных элементов).
+          Все семантические цвета протестированы для дальтоников.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. TYPOGRAPHY ============ -->
+    <section class="section" id="typography">
+      <div class="section__head">
+        <div class="section__num">02 / 10</div>
+        <h2 class="section__title">Типографика</h2>
+        <p class="section__desc">Inter — один шрифт для всего. 6 размеров + 1 для бейджей. На цифрах включён tabular-nums для выравнивания цен.</p>
+      </div>
+
+      <div class="demo">
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>Display</strong><br>
+            32 / 700 / -0.02em<br>
+            <code>type-display</code>
+          </div>
+          <div class="type-display" style="font-variant-numeric: tabular-nums;">8 750 ₽</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>H1</strong><br>
+            24 / 700 / -0.01em<br>
+            <code>type-h1</code>
+          </div>
+          <div class="type-h1">Что найти?</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>H2</strong><br>
+            18 / 600<br>
+            <code>type-h2</code>
+          </div>
+          <div class="type-h2">Лучший выбор для тебя</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>Body L</strong><br>
+            16 / 500<br>
+            <code>type-body-l</code>
+          </div>
+          <div class="type-body-l">Xiaomi Robot Vacuum E12</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>Body</strong><br>
+            14 / 400<br>
+            <code>type-body</code>
+          </div>
+          <div class="type-body">Отлично с шерстью кота, упомянуто в 67% отзывов. Хорошая мощность всасывания, тихий режим работы.</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>Caption</strong><br>
+            12 / 400<br>
+            <code>type-caption</code>
+          </div>
+          <div class="type-caption">Ozon · в наличии · доставка завтра</div>
+        </div>
+        <div class="type-row">
+          <div class="type-meta">
+            <strong>Tiny</strong><br>
+            11 / 500 / 0.08em<br>
+            <code>type-tiny</code>
+          </div>
+          <div class="type-tiny">Лучшая цена</div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Шрифт: <code>Inter</code> с подключением через Google Fonts. Веса в проекте: 400, 500, 600, 700.
+          Для всех цифр (цены, статистика, время) добавлять <code>font-variant-numeric: tabular-nums</code> чтобы цифры были одинаковой ширины.
+          Никогда не использовать size меньше 11px — нечитабельно.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. BUTTONS ============ -->
+    <section class="section" id="buttons">
+      <div class="section__head">
+        <div class="section__num">03 / 10</div>
+        <h2 class="section__title">Кнопки</h2>
+        <p class="section__desc">4 типа: primary, secondary, ghost, danger. Высота по умолчанию 44px (правило Apple HIG для tap-targets).</p>
+      </div>
+
+      <div class="label">Типы</div>
+      <div class="demo">
+        <div class="btn-grid">
+          <button class="btn btn--primary"><i class="ti ti-search"></i> Найти</button>
+          <button class="btn btn--secondary">Уточнить</button>
+          <button class="btn btn--ghost">Поделиться</button>
+          <button class="btn btn--danger"><i class="ti ti-trash"></i> Удалить</button>
+        </div>
+      </div>
+
+      <div class="label">Размеры</div>
+      <div class="demo">
+        <div class="btn-grid">
+          <button class="btn btn--primary btn--lg">Большая (52px)</button>
+          <button class="btn btn--primary">Базовая (44px)</button>
+          <button class="btn btn--primary btn--sm">Маленькая (36px)</button>
+          <button class="btn btn--primary btn--icon" aria-label="Поиск"><i class="ti ti-search"></i></button>
+        </div>
+      </div>
+
+      <div class="label">Состояния</div>
+      <div class="demo">
+        <div class="btn-grid">
+          <button class="btn btn--primary">Default</button>
+          <button class="btn btn--primary" disabled>Disabled</button>
+          <button class="btn btn--secondary">Default</button>
+          <button class="btn btn--secondary" disabled>Disabled</button>
+        </div>
+      </div>
+
+      <div class="label">Полная ширина (для CTA)</div>
+      <div class="demo demo--padded">
+        <button class="btn btn--primary btn--lg btn--block"><i class="ti ti-microphone"></i> Найти голосом</button>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Высота 44px = минимум для tap-targets (Apple HIG). Большая 52px для главных CTA.
+          Hover: лёгкое <code>translateY(-1px)</code> + смена цвета. Active: возврат + затемнение.
+          Disabled: <code>opacity: 0.4</code> + <code>cursor: not-allowed</code>.
+          Иконки в кнопках всегда 18px, gap 8px.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. PRODUCT CARDS ============ -->
+    <section class="section" id="cards">
+      <div class="section__head">
+        <div class="section__num">04 / 10</div>
+        <h2 class="section__title">Карточки товаров</h2>
+        <p class="section__desc">Главный визуальный элемент продукта. Видно сразу: ранг, цены по площадкам, кнопки действия.</p>
+      </div>
+
+      <div class="demo demo--mobile">
+        <div class="phone">
+          <!-- Winner card -->
+          <div class="product-card product-card--winner" style="margin-bottom:12px;">
+            <div class="product-card__header">
+              <div class="product-card__rank product-card__rank--gold">
+                <span class="product-card__rank-medal">🥇</span> Лучший выбор
+              </div>
+              <span class="badge badge--success"><i class="ti ti-check"></i> Проверен</span>
+            </div>
+            <div class="product-card__image"><i class="ti ti-robot"></i></div>
+            <div class="product-card__name">Xiaomi Robot Vacuum E12</div>
+            <div class="product-card__reason">Отлично справляется с шерстью кота, упомянуто в 67% отзывов</div>
+            <div class="product-card__prices">
+              <div class="price-row price-row--best">
+                <span class="price-row__store">Ozon</span>
+                <span class="price-row__amount">24 990 ₽</span>
+              </div>
+              <div class="price-row">
+                <span class="price-row__store">WB</span>
+                <span class="price-row__amount">27 500 ₽</span>
+              </div>
+              <div class="price-row">
+                <span class="price-row__store">Я.Маркет</span>
+                <span class="price-row__amount">25 800 ₽</span>
+              </div>
+            </div>
+            <div class="product-card__actions">
+              <button class="btn btn--primary btn--sm" style="flex:1;">Купить</button>
+              <button class="btn btn--secondary btn--sm btn--icon" aria-label="Следить за ценой"><i class="ti ti-bell"></i></button>
+              <button class="btn btn--secondary btn--sm btn--icon" aria-label="Поделиться"><i class="ti ti-share"></i></button>
+            </div>
+          </div>
+
+          <!-- Regular card -->
+          <div class="product-card">
+            <div class="product-card__header">
+              <div class="product-card__rank">
+                <span class="product-card__rank-medal">🥈</span> Альтернатива
+              </div>
+            </div>
+            <div class="product-card__image"><i class="ti ti-robot"></i></div>
+            <div class="product-card__name">Roborock Q5 Pro</div>
+            <div class="product-card__reason">Дороже, но мощнее. Подойдёт если важна скорость уборки</div>
+            <div class="product-card__prices">
+              <div class="price-row price-row--best">
+                <span class="price-row__store">WB</span>
+                <span class="price-row__amount">28 990 ₽</span>
+              </div>
+              <div class="price-row">
+                <span class="price-row__store">Ozon</span>
+                <span class="price-row__amount">29 500 ₽</span>
+              </div>
+            </div>
+            <div class="product-card__actions">
+              <button class="btn btn--secondary btn--sm" style="flex:1;">Купить</button>
+              <button class="btn btn--secondary btn--sm btn--icon" aria-label="Следить"><i class="ti ti-bell"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Карточка-победитель: бордер <code>--accent</code>, лёгкий градиент сверху, медаль 🥇 + бейдж "Проверен".
+          Альтернатива: обычный бордер, медаль 🥈/🥉.
+          Цены в monospace для выравнивания. Лучшая цена выделена цветом акцента.
+          Кнопки: главная Primary, остальные Secondary иконками.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 5. INPUTS ============ -->
+    <section class="section" id="inputs">
+      <div class="section__head">
+        <div class="section__num">05 / 10</div>
+        <h2 class="section__title">Поля ввода</h2>
+        <p class="section__desc">Голосовой ввод — первичный (большая зелёная кнопка). Текст — вторичный, но всегда доступен.</p>
+      </div>
+
+      <div class="label">Главное поле (с голосом)</div>
+      <div class="demo demo--padded">
+        <div style="max-width: 400px;">
+          <div class="input-wrap">
+            <span class="input-wrap__icon"><i class="ti ti-search"></i></span>
+            <input class="input" placeholder="Опиши что нужно..." type="text">
+            <button class="input-wrap__voice" aria-label="Голосовой ввод" onclick="toggleVoice(this)">
+              <i class="ti ti-microphone"></i>
+            </button>
+          </div>
+          <div class="input-suggestions">
+            <div class="chip" onclick="setInputExample(this, 'робот-пылесос до 30к для кота')">робот-пылесос до 30к</div>
+            <div class="chip" onclick="setInputExample(this, 'наушники с шумоподавлением до 15к')">наушники до 15к</div>
+            <div class="chip" onclick="setInputExample(this, 'тёплая зимняя куртка размер M')">куртка зима M</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Высота поля 52px (с голосом). Радиус <code>--r-lg</code>. Focus: 3px glow цвета акцента.
+          Иконка слева 20px, отступ 16px. Голосовая кнопка 40px, отступ от края 6px.
+          Подсказки-чипсы под полем — клик заполняет поле.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 6. BADGES ============ -->
+    <section class="section" id="badges">
+      <div class="section__head">
+        <div class="section__num">06 / 10</div>
+        <h2 class="section__title">Бейджи</h2>
+        <p class="section__desc">Тонкие индикаторы статуса и контекста. 6 семантических цветов + нейтральный.</p>
+      </div>
+
+      <div class="demo">
+        <div class="badge-grid">
+          <span class="badge badge--accent">Лучшая цена</span>
+          <span class="badge badge--success"><i class="ti ti-check"></i> Проверен</span>
+          <span class="badge badge--warning"><i class="ti ti-alert-triangle"></i> Подорожал</span>
+          <span class="badge badge--danger"><i class="ti ti-x"></i> Накрутка</span>
+          <span class="badge badge--info"><i class="ti ti-info-circle"></i> Сезонная скидка</span>
+          <span class="badge badge--mute">Без отзывов</span>
+          <span class="badge badge--success">−15%</span>
+          <span class="badge badge--accent">Premium</span>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Радиус: <code>--r-full</code> (pill-форма). Fill: 15% opacity от цвета, text: чистый цвет.
+          Не использовать как кнопки — только индикаторы. Не больше 1-2 на карточку.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 7. LOADING ============ -->
+    <section class="section" id="loading">
+      <div class="section__head">
+        <div class="section__num">07 / 10</div>
+        <h2 class="section__title">Состояния загрузки</h2>
+        <p class="section__desc">Это критичный экран — юзер ждёт 30-60 секунд. Не общий spinner, а конкретные этапы поиска.</p>
+      </div>
+
+      <div class="label">Этапы поиска (главное)</div>
+      <div class="demo demo--mobile">
+        <div class="phone">
+          <div style="text-align:center; padding: 24px 16px;">
+            <div class="type-h1" style="margin-bottom: 8px;">Ищу варианты</div>
+            <div class="type-caption" style="margin-bottom: 32px;">обычно 30-60 секунд</div>
+          </div>
+          <div class="loading-stages" id="loadingDemo">
+            <div class="stage stage--done">
+              <div class="stage__icon"><i class="ti ti-check"></i></div>
+              <div class="stage__text">Понял запрос</div>
+            </div>
+            <div class="stage stage--done">
+              <div class="stage__icon"><i class="ti ti-check"></i></div>
+              <div class="stage__text">Сканирую Ozon</div>
+            </div>
+            <div class="stage stage--active">
+              <div class="stage__icon"><i class="ti ti-loader"></i></div>
+              <div class="stage__progress"></div>
+              <div class="stage__text">Анализирую отзывы WB</div>
+            </div>
+            <div class="stage stage--pending">
+              <div class="stage__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage__text">Сравниваю цены</div>
+            </div>
+            <div class="stage stage--pending">
+              <div class="stage__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage__text">Выбираю топ-3</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="label">Skeleton (для списков)</div>
+      <div class="demo">
+        <div style="max-width:340px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div class="skeleton" style="width:64px; height:64px; border-radius: var(--r-md);"></div>
+            <div style="flex:1;">
+              <div class="skeleton" style="height:14px; width: 70%; margin-bottom: 8px;"></div>
+              <div class="skeleton" style="height:12px; width: 50%;"></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div class="skeleton" style="width:64px; height:64px; border-radius: var(--r-md);"></div>
+            <div style="flex:1;">
+              <div class="skeleton" style="height:14px; width: 60%; margin-bottom: 8px;"></div>
+              <div class="skeleton" style="height:12px; width: 40%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Этапы переходят: <code>pending</code> → <code>active</code> (с спиннером) → <code>done</code> (с галочкой и зелёной подложкой).
+          Длительность каждого этапа должна примерно соответствовать реальному времени API-запроса.
+          Skeleton: shimmer-анимация 1.5s ease-in-out infinite.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 8. EMPTY STATES ============ -->
+    <section class="section" id="empty">
+      <div class="section__head">
+        <div class="section__num">08 / 10</div>
+        <h2 class="section__title">Empty states</h2>
+        <p class="section__desc">Пустые состояния — это не "ничего нет", а призыв к действию. Иконка + короткий текст + кнопка.</p>
+      </div>
+
+      <div class="demo demo--mobile">
+        <div class="phone">
+          <div class="empty">
+            <div class="empty__icon"><i class="ti ti-bell"></i></div>
+            <div class="empty__title">Пока ничего не отслеживаешь</div>
+            <div class="empty__desc">Когда найдёшь интересный товар, нажми «Следить» — пришлём алерт когда подешевеет</div>
+            <button class="btn btn--primary"><i class="ti ti-search"></i> Найти товар</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Иконка 64×64 в круге <code>--bg-raised</code>, текст по центру, max-width описания 260px.
+          Главный CTA — primary кнопка. Без декоративных иллюстраций.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 9. PAYWALL ============ -->
+    <section class="section" id="paywall">
+      <div class="section__head">
+        <div class="section__num">09 / 10</div>
+        <h2 class="section__title">Пейволл</h2>
+        <p class="section__desc">Soft paywall после 3 бесплатных запросов. Не блокирует, но мотивирует. Якорные цены: годовая выглядит выгодной.</p>
+      </div>
+
+      <div class="demo demo--mobile">
+        <div class="phone">
+          <div class="paywall">
+            <div class="paywall__badge"><i class="ti ti-bolt"></i> Premium</div>
+            <div class="paywall__title">Безлимит запросов и алерты</div>
+            <div class="paywall__desc">Ты использовал 3 бесплатных запроса. Premium открывает всё.</div>
+            <ul class="paywall__features">
+              <li class="paywall__feature"><i class="ti ti-check"></i> Безлимит запросов в день</li>
+              <li class="paywall__feature"><i class="ti ti-check"></i> Алерты на изменение цен</li>
+              <li class="paywall__feature"><i class="ti ti-check"></i> История запросов навсегда</li>
+              <li class="paywall__feature"><i class="ti ti-check"></i> Приоритет в очереди ИИ</li>
+            </ul>
+            <div class="paywall__plans">
+              <div class="plan is-selected" onclick="selectPlan(this)">
+                <div>
+                  <div class="plan__name">Год</div>
+                  <div class="plan__sub">≈ 410 ₽/мес</div>
+                </div>
+                <div class="plan__price">
+                  <div class="plan__amount">4 900 ₽</div>
+                  <div class="plan__discount">−31% выгода</div>
+                </div>
+              </div>
+              <div class="plan" onclick="selectPlan(this)">
+                <div>
+                  <div class="plan__name">Месяц</div>
+                  <div class="plan__sub">пробуй без обязательств</div>
+                </div>
+                <div class="plan__price">
+                  <div class="plan__amount">590 ₽</div>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn--primary btn--lg btn--block">7 дней бесплатно</button>
+            <div class="type-caption" style="text-align:center; margin-top: 12px;">Отмена в любой момент</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Якорь: годовая по умолчанию выбрана и показана первой. Месячная — для тех кто "не уверен".
+          CTA: "7 дней бесплатно" (не "Купить") — снимает барьер.
+          Decorative radial-gradient в углу — единственное место где используем градиент. Очень слабый, для атмосферы.
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10. BOTTOM SHEET ============ -->
+    <section class="section" id="bsheet">
+      <div class="section__head">
+        <div class="section__num">10 / 10</div>
+        <h2 class="section__title">Bottom sheet</h2>
+        <p class="section__desc">Для уточнения запроса, выбора опций, шеринга. Не модалка — она перегружает в TG Mini App.</p>
+      </div>
+
+      <div class="demo demo--mobile">
+        <div class="phone">
+          <div class="bsheet-demo">
+            <div class="bsheet-bg">
+              <div class="type-caption" style="text-align:center; padding: 16px 0;">Главный экран в фоне</div>
+            </div>
+            <div class="bsheet">
+              <div class="bsheet__handle"></div>
+              <div class="bsheet__title">Поделиться результатом</div>
+              <div class="bsheet__options">
+                <div class="bsheet__option">
+                  <i class="ti ti-brand-telegram"></i>
+                  <div class="bsheet__option-text">Telegram</div>
+                </div>
+                <div class="bsheet__option">
+                  <i class="ti ti-brand-whatsapp"></i>
+                  <div class="bsheet__option-text">WhatsApp</div>
+                </div>
+                <div class="bsheet__option">
+                  <i class="ti ti-link"></i>
+                  <div class="bsheet__option-text">Скопировать ссылку</div>
+                </div>
+                <div class="bsheet__option">
+                  <i class="ti ti-photo"></i>
+                  <div class="bsheet__option-text">Сохранить как картинку</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spec">
+        <div class="spec__title">Spec</div>
+        <div class="spec__text">
+          Bottom sheet всегда снизу — лучше для большого пальца на телефоне.
+          Handle сверху — индикатор "можно свайпнуть". Background dim'ится при открытии.
+          Не использовать для критичных подтверждений (используй modal на весь экран).
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+</div>
+
+<footer class="footer">
+  AI-шопер · Дизайн-система v1.0 · Май 2026
+</footer>
+
+<script>
+  // Sticky nav active state
+  const sections = document.querySelectorAll('.section');
+  const navLinks = document.querySelectorAll('.nav__link');
+
+  function updateActiveNav() {
+    let current = '';
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop;
+      if (window.scrollY >= sectionTop - 100) {
+        current = section.getAttribute('id');
+      }
+    });
+
+    navLinks.forEach(link => {
+      link.classList.remove('is-active');
+      if (link.getAttribute('href').slice(1) === current) {
+        link.classList.add('is-active');
+      }
+    });
+  }
+
+  window.addEventListener('scroll', updateActiveNav);
+
+  // Voice toggle demo
+  function toggleVoice(btn) {
+    btn.classList.toggle('voice-active');
+    const icon = btn.querySelector('i');
+    if (btn.classList.contains('voice-active')) {
+      icon.className = 'ti ti-player-stop-filled';
+    } else {
+      icon.className = 'ti ti-microphone';
+    }
+  }
+
+  // Plan select
+  function selectPlan(el) {
+    document.querySelectorAll('.plan').forEach(p => p.classList.remove('is-selected'));
+    el.classList.add('is-selected');
+  }
+
+  // Suggestion chips
+  function setInputExample(chip, text) {
+    const input = chip.closest('.demo').querySelector('.input');
+    if (input) input.value = text;
+  }
+
+  // Smooth scroll
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        window.scrollTo({
+          top: target.offsetTop - 20,
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

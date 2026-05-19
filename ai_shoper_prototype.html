@@ -1,0 +1,3944 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-шопер · Прототип</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #0A0E13;
+  --bg-surface: #161B22;
+  --bg-raised: #21262D;
+  --bg-high: #2D333B;
+  --text: #E6EDF3;
+  --text-mute: #9198A1;
+  --text-dim: #6E7681;
+  --accent: #00D9A6;
+  --accent-bright: #1FE5B6;
+  --accent-dim: #00B888;
+  --accent-soft: rgba(0, 217, 166, 0.12);
+  --green: #3FB950;
+  --amber: #D29922;
+  --red: #F85149;
+  --blue: #58A6FF;
+  --border: #30363D;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #050709;
+  color: var(--text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+/* ===== STAGE LAYOUT ===== */
+.stage {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 40px;
+}
+.stage__nav {
+  position: sticky;
+  top: 20px;
+  align-self: start;
+}
+.stage__title {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+.stage__heading {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.stage__desc {
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+}
+.stage__screens {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+.stage__screen {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+.stage__screen:hover { background: var(--bg-raised); }
+.stage__screen.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.stage__screen-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+  width: 18px;
+}
+.stage__screen.is-active .stage__screen-num { color: var(--accent); }
+.stage__screen-name {
+  font-size: 13px;
+  flex: 1;
+}
+.stage__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  line-height: 1.5;
+}
+.stage__hint strong { color: var(--accent); }
+
+/* Example switcher */
+.example-switcher {
+  margin-top: 24px;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+.example-switcher__label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.example-switcher__options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.example-switcher__btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-mute);
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 200ms var(--ease);
+}
+.example-switcher__btn:hover { color: var(--text); }
+.example-switcher__btn.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ===== PHONE FRAME ===== */
+.phone-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+.phone {
+  width: 390px;
+  height: 800px;
+  background: var(--bg);
+  border-radius: 44px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px #30363D,
+    0 0 0 11px #1a1a1a,
+    0 0 0 13px #30363D,
+    0 30px 80px rgba(0,0,0,0.7);
+  position: relative;
+}
+.phone::before {
+  content: '';
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 32px;
+  background: #050709;
+  border-radius: 999px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.screen {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border-radius: 32px;
+  overflow: hidden;
+  position: relative;
+  display: none;
+  flex-direction: column;
+}
+.screen.is-active { display: flex; animation: fadeIn 300ms var(--ease); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== STATUS BAR ===== */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.status-bar__icons {
+  display: flex;
+  gap: 4px;
+  font-size: 12px;
+}
+
+/* ===== TOP BAR ===== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
+}
+.top-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.top-bar__logo {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+}
+.top-bar__name {
+  font-size: 17px;
+  font-weight: 600;
+}
+.top-bar__actions {
+  display: flex;
+  gap: 6px;
+}
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--text-mute);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  font-size: 20px;
+  position: relative;
+}
+.icon-btn:hover { background: var(--bg-raised); color: var(--text); }
+.icon-btn__dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+
+/* ===== SCROLL AREA ===== */
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-raised) transparent;
+}
+.scroll::-webkit-scrollbar { width: 4px; }
+.scroll::-webkit-scrollbar-thumb { background: var(--bg-raised); border-radius: 2px; }
+
+/* ===== HOME SCREEN ===== */
+.greeting {
+  margin-bottom: 24px;
+  padding-top: 8px;
+}
+.greeting__hi {
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 4px;
+}
+.greeting__name {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.cta-card {
+  background: linear-gradient(180deg, rgba(0, 217, 166, 0.08) 0%, var(--bg-surface) 100%);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-xl);
+  padding: 20px;
+  margin-bottom: 24px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.cta-card::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-card:hover { transform: translateY(-2px); }
+.cta-card:active { transform: translateY(0); }
+.cta-card__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  position: relative;
+}
+.cta-card__sub {
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 16px;
+  position: relative;
+}
+.cta-card__action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+}
+.cta-card__action i { font-size: 18px; }
+
+/* Section */
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  padding-top: 4px;
+}
+.section-title__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.section-title__link {
+  font-size: 12px;
+  color: var(--text-mute);
+  cursor: pointer;
+}
+.section-title__link:hover { color: var(--accent); }
+
+/* Trending chips */
+.trending {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin: 0 -20px 24px;
+  padding: 0 20px 8px;
+  scrollbar-width: none;
+}
+.trending::-webkit-scrollbar { display: none; }
+.trend-chip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: 10px 16px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.trend-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.trend-chip i { font-size: 14px; color: var(--text-dim); }
+
+/* Tracked items mini */
+.tracked-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tracked-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.tracked-item:hover { border-color: var(--text-dim); }
+.tracked-item__icon {
+  width: 44px;
+  height: 44px;
+  background: var(--bg-raised);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.tracked-item__info { flex: 1; min-width: 0; }
+.tracked-item__name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tracked-item__price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.tracked-item__current {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+.tracked-item__change {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.tracked-item__change--down { color: var(--green); }
+.tracked-item__change--up { color: var(--red); }
+
+/* ===== INPUT SCREEN ===== */
+.input-screen__back {
+  margin-bottom: 16px;
+}
+.input-screen__heading {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  padding-top: 8px;
+}
+.input-screen__sub {
+  font-size: 14px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+}
+
+.search-field {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  cursor: text;
+  transition: all 200ms var(--ease);
+}
+.search-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.search-field__input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  width: 100%;
+  flex: 1;
+  resize: none;
+  line-height: 1.5;
+}
+.search-field__input::placeholder { color: var(--text-dim); }
+
+.voice-btn-large {
+  width: 100%;
+  height: 56px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 24px;
+  transition: all 200ms var(--ease);
+}
+.voice-btn-large:hover { background: var(--accent-bright); transform: translateY(-1px); }
+.voice-btn-large i { font-size: 22px; }
+
+/* Suggestions */
+.suggestions-title {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.suggestion {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.suggestion:hover { border-color: var(--accent); }
+.suggestion__icon {
+  color: var(--text-dim);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.suggestion__text {
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Voice listening overlay */
+.voice-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 19, 0.92);
+  backdrop-filter: blur(8px);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 50;
+  border-radius: 32px;
+}
+.voice-overlay.is-active { display: flex; }
+.voice-orb {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-bottom: 32px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg);
+  font-size: 64px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 40px transparent; }
+}
+.voice-orb::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: orb-ring 1.5s ease-in-out infinite;
+}
+@keyframes orb-ring {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.2); opacity: 0; }
+}
+.voice-overlay__status {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+.voice-overlay__hint {
+  font-size: 13px;
+  color: var(--text-mute);
+  text-align: center;
+  margin-bottom: 32px;
+}
+.voice-overlay__cancel {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 24px;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.voice-overlay__cancel:hover { background: var(--bg-high); }
+
+/* ===== PROCESSING SCREEN ===== */
+.processing-screen {
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.processing-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.processing-header__title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+.processing-header__sub {
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.query-bubble {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  margin-bottom: 28px;
+  font-size: 14px;
+  color: var(--text-mute);
+  font-style: italic;
+  position: relative;
+  padding-left: 40px;
+}
+.query-bubble::before {
+  content: '\f3f3';
+  font-family: 'tabler-icons';
+  font-style: normal;
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 18px;
+}
+.stages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.stage-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: all 400ms var(--ease);
+}
+.stage-item--done {
+  background: var(--accent-soft);
+  border-color: rgba(0, 217, 166, 0.3);
+}
+.stage-item--active {
+  background: var(--bg-surface);
+  border-color: var(--accent);
+}
+.stage-item__icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stage-item__icon i { font-size: 22px; }
+.stage-item--done .stage-item__icon { color: var(--accent); }
+.stage-item--pending .stage-item__icon { color: var(--text-dim); }
+.stage-item__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2.5px solid var(--bg-high);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+.stage-item--active .stage-item__spinner { display: block; }
+.stage-item--active .stage-item__icon i { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.stage-item__text {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text);
+}
+.stage-item--pending .stage-item__text { color: var(--text-dim); }
+.stage-item__time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.stage-item--done .stage-item__time { color: var(--accent); }
+
+/* ===== RESULTS SCREEN ===== */
+.results-header {
+  margin-bottom: 16px;
+  padding-top: 8px;
+}
+.results-header__query {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.results-header__query i { font-size: 14px; }
+.results-header__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.results-header__sub {
+  font-size: 13px;
+  color: var(--text-mute);
+}
+
+.product-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.product-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  transition: all 200ms var(--ease);
+  cursor: pointer;
+  position: relative;
+}
+.product-card:hover { border-color: var(--accent); }
+.product-card--winner {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(0, 217, 166, 0.04) 0%, var(--bg-surface) 100%);
+}
+.product-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.product-card__rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.product-card__rank--gold { color: var(--accent); }
+.product-card__rank-medal { font-size: 16px; }
+
+.product-card__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--green);
+  padding: 4px 8px;
+  border-radius: var(--r-full);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.product-card__check i { font-size: 12px; }
+
+.product-card__image {
+  background: var(--bg-raised);
+  border-radius: var(--r-md);
+  aspect-ratio: 16/10;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 48px;
+}
+.product-card__name {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.product-card__reason {
+  font-size: 13px;
+  color: var(--text-mute);
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+.product-card__prices {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: var(--r-md);
+}
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.price-row__store {
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.price-row__store::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--text-dim);
+  border-radius: 50%;
+}
+.price-row__amount {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  font-weight: 500;
+}
+.price-row--best .price-row__store {
+  color: var(--accent);
+  font-weight: 500;
+}
+.price-row--best .price-row__store::before { background: var(--accent); }
+.price-row--best .price-row__amount {
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 14px;
+}
+.product-card__actions {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 200ms var(--ease);
+  white-space: nowrap;
+}
+.btn--primary { background: var(--accent); color: var(--bg); }
+.btn--primary:hover { background: var(--accent-bright); }
+.btn--secondary {
+  background: var(--bg-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn--secondary:hover { background: var(--bg-high); }
+.btn--block { flex: 1; }
+.btn--icon { width: 40px; padding: 0; }
+.btn--icon i { font-size: 18px; }
+
+/* Bottom nav */
+.bottom-nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 12px 16px 24px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 200ms var(--ease);
+}
+.nav-item i { font-size: 22px; }
+.nav-item.is-active { color: var(--accent); }
+.nav-item:hover { color: var(--text); }
+
+/* ===== HINT BAR ===== */
+.hint-bar {
+  max-width: 1200px;
+  margin: 32px auto 0;
+  padding: 16px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.hint-bar i { color: var(--accent); font-size: 20px; }
+.hint-bar strong { color: var(--text); }
+
+/* ===== WELCOME SCREEN ===== */
+.welcome {
+  padding: 24px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.welcome__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+  margin-bottom: 32px;
+}
+.welcome__logo {
+  width: 84px;
+  height: 84px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  box-shadow:
+    0 0 0 8px rgba(0, 217, 166, 0.08),
+    0 0 40px rgba(0, 217, 166, 0.3);
+}
+.welcome__title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.welcome__title-accent { color: var(--accent); }
+.welcome__sub {
+  font-size: 15px;
+  color: var(--text-mute);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.welcome__features {
+  margin: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.welcome__feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.welcome__feature-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 20px;
+}
+.welcome__feature-text { padding-top: 2px; }
+.welcome__feature-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.welcome__feature-desc {
+  font-size: 13px;
+  color: var(--text-mute);
+  line-height: 1.4;
+}
+
+.welcome__cta {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.welcome__hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+/* ===== QUIZ SCREEN ===== */
+.quiz {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.quiz__progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+.quiz__progress-step {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-raised);
+  border-radius: var(--r-full);
+  overflow: hidden;
+  transition: background 400ms var(--ease);
+}
+.quiz__progress-step.is-active { background: var(--accent); }
+.quiz__progress-step.is-current {
+  background: linear-gradient(90deg, var(--accent) 50%, var(--bg-raised) 50%);
+}
+
+.quiz__step-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.quiz__question {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.quiz__hint {
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+}
+
+.quiz__options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.quiz__option {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.quiz__option:hover { border-color: var(--text-dim); }
+.quiz__option.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.quiz__option-icon {
+  font-size: 22px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.quiz__option-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+.quiz__option-check {
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms var(--ease);
+}
+.quiz__option.is-selected .quiz__option-check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.quiz__option-check i {
+  color: var(--bg);
+  font-size: 16px;
+  display: none;
+}
+.quiz__option.is-selected .quiz__option-check i { display: block; }
+
+.quiz__bottom {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+  padding-top: 16px;
+}
+.quiz__back {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  height: 52px;
+  padding: 0 20px;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.quiz__back:hover { background: var(--bg-high); }
+.quiz__next {
+  flex: 1;
+  background: var(--accent);
+  color: var(--bg);
+  height: 52px;
+  border: none;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.quiz__next:hover:not(:disabled) { background: var(--accent-bright); }
+.quiz__next:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== PAYWALL SCREEN ===== */
+.paywall {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+.paywall::before {
+  content: '';
+  position: absolute;
+  top: -150px;
+  right: -150px;
+  width: 360px;
+  height: 360px;
+  background: radial-gradient(circle, rgba(0, 217, 166, 0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.paywall__close {
+  align-self: flex-start;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-mute);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-size: 18px;
+  position: relative;
+}
+.paywall__close:hover { color: var(--text); }
+.paywall__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 5px 12px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  align-self: flex-start;
+  position: relative;
+}
+.paywall__badge i { font-size: 14px; }
+.paywall__title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  position: relative;
+}
+.paywall__desc {
+  font-size: 14px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.paywall__features {
+  list-style: none;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+}
+.paywall__feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.paywall__feature-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.paywall__plans {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.paywall__plan {
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+}
+.paywall__plan:hover { border-color: var(--text-dim); }
+.paywall__plan.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.paywall__plan-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.paywall__plan-sub {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+.paywall__plan-price {
+  text-align: right;
+}
+.paywall__plan-amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+}
+.paywall__plan-discount {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.paywall__cta {
+  background: var(--accent);
+  color: var(--bg);
+  height: 56px;
+  border: none;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  position: relative;
+  margin-bottom: 8px;
+}
+.paywall__cta:hover { background: var(--accent-bright); }
+.paywall__legal {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  position: relative;
+}
+
+/* ===== TRACKED SCREEN ===== */
+.tracked-header {
+  padding: 8px 0 20px;
+}
+.tracked-header__title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.tracked-header__count {
+  font-size: 13px;
+  color: var(--text-mute);
+}
+
+.tracked-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--bg-surface);
+  border-radius: var(--r-md);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+.tracked-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  color: var(--text-mute);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 200ms var(--ease);
+}
+.tracked-tab:hover { color: var(--text); }
+.tracked-tab.is-active {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.tracked-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.tracked-card:hover { border-color: var(--text-dim); }
+.tracked-card--drop {
+  border-color: rgba(63, 185, 80, 0.3);
+}
+.tracked-card__top {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.tracked-card__icon {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-raised);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.tracked-card__info { flex: 1; min-width: 0; }
+.tracked-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.tracked-card__source {
+  font-size: 12px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tracked-card__source::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  display: inline-block;
+}
+.tracked-card__date { color: var(--text-dim); }
+
+.tracked-card__chart {
+  position: relative;
+  height: 60px;
+  background: var(--bg);
+  border-radius: var(--r-md);
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  overflow: hidden;
+}
+.tracked-card__chart svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.tracked-card__prices {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.tracked-card__price-current {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+}
+.tracked-card__price-old {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-decoration: line-through;
+  margin-right: 8px;
+}
+.tracked-card__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+.tracked-card__change--down {
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--green);
+}
+.tracked-card__change--up {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--red);
+}
+.tracked-card__change i { font-size: 14px; }
+
+.tracked-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tracked-card__alert {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--green);
+  padding: 4px 8px;
+  border-radius: var(--r-full);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: auto;
+}
+.tracked-card__alert i { font-size: 12px; }
+
+/* ===== SHARE SHEET ===== */
+.share-sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: flex-end;
+  z-index: 100;
+  border-radius: 32px;
+  overflow: hidden;
+}
+.share-sheet-overlay.is-active { display: flex; animation: fadeIn 200ms var(--ease); }
+
+.share-sheet {
+  background: var(--bg-surface);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  width: 100%;
+  padding: 8px 20px 32px;
+  border-top: 1px solid var(--border);
+  animation: slideUp 300ms var(--ease);
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.share-sheet__handle {
+  width: 40px;
+  height: 4px;
+  background: var(--bg-high);
+  border-radius: var(--r-full);
+  margin: 0 auto 16px;
+}
+.share-sheet__title {
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.share-preview {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 20px;
+  position: relative;
+}
+.share-preview__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.share-preview__brand-logo {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.share-preview__brand-name {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+.share-preview__brand-badge {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.share-preview__product {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.share-preview__icon {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-raised);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.share-preview__info { flex: 1; min-width: 0; }
+.share-preview__name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.share-preview__price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.share-channels {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.share-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 200ms var(--ease);
+}
+.share-channel:hover { transform: translateY(-2px); }
+.share-channel__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+.share-channel__icon--tg { background: #229ED9; color: #fff; }
+.share-channel__icon--wa { background: #25D366; color: #fff; }
+.share-channel__icon--sms { background: var(--bg-raised); color: var(--text); border: 1px solid var(--border); }
+.share-channel__icon--more { background: var(--bg-raised); color: var(--text); border: 1px solid var(--border); }
+.share-channel__name {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.share-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.share-action:hover { background: var(--bg-high); }
+.share-action i {
+  color: var(--text-mute);
+  font-size: 20px;
+}
+.share-action span {
+  font-size: 14px;
+}
+
+/* ===== EMPTY STATES SCREEN ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 32px;
+}
+.empty-state__icon {
+  width: 80px;
+  height: 80px;
+  background: var(--bg-raised);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+  font-size: 36px;
+}
+.empty-state__title {
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.empty-state__desc {
+  font-size: 14px;
+  color: var(--text-mute);
+  line-height: 1.5;
+  margin-bottom: 24px;
+  max-width: 280px;
+}
+
+/* Responsive */
+@media (max-width: 880px) {
+  .stage { grid-template-columns: 1fr; }
+  .stage__nav { position: static; }
+}
+
+/* ============================================ */
+/* ============ НОВЫЕ ЭКРАНЫ P1 =============== */
+/* ============================================ */
+
+/* ===== WELCOME + QUIZ ===== */
+.welcome-screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 24px 32px;
+  position: relative;
+  overflow: hidden;
+}
+.welcome-screen::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+.welcome-screen__hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+.welcome-screen__logo {
+  width: 72px;
+  height: 72px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 36px;
+  margin-bottom: 32px;
+  box-shadow: 0 12px 32px rgba(0, 217, 166, 0.3);
+}
+.welcome-screen__title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+.welcome-screen__title span {
+  color: var(--accent);
+}
+.welcome-screen__sub {
+  font-size: 16px;
+  color: var(--text-mute);
+  line-height: 1.5;
+  margin-bottom: 32px;
+  max-width: 280px;
+}
+.welcome-screen__benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.welcome-benefit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text);
+}
+.welcome-benefit i {
+  color: var(--accent);
+  font-size: 20px;
+}
+.welcome-screen__btn {
+  width: 100%;
+  height: 56px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.welcome-screen__btn:hover { background: var(--accent-bright); }
+.welcome-screen__btn i { font-size: 20px; }
+
+/* Quiz */
+.quiz-screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.quiz-progress {
+  padding: 16px 24px 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quiz-progress__bar {
+  flex: 1;
+  height: 4px;
+  background: var(--bg-raised);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.quiz-progress__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 400ms var(--ease);
+}
+.quiz-progress__step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-mute);
+}
+.quiz-back {
+  padding: 12px 20px;
+}
+.quiz-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  overflow-y: auto;
+}
+.quiz-content__title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.quiz-content__sub {
+  font-size: 14px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+}
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.quiz-option {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.quiz-option:hover { border-color: var(--text-dim); }
+.quiz-option.is-selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.quiz-option__radio {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 200ms var(--ease);
+}
+.quiz-option.is-selected .quiz-option__radio {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.quiz-option.is-selected .quiz-option__radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: var(--bg);
+  border-radius: 50%;
+}
+.quiz-option__icon {
+  font-size: 22px;
+  color: var(--text-mute);
+}
+.quiz-option.is-selected .quiz-option__icon { color: var(--accent); }
+.quiz-option__text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+.quiz-multi .quiz-option__radio { border-radius: 6px; }
+.quiz-multi .quiz-option.is-selected .quiz-option__radio { border-radius: 6px; }
+.quiz-multi .quiz-option.is-selected .quiz-option__radio::after {
+  width: 12px;
+  height: 12px;
+  background: transparent;
+  border-radius: 0;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230A0E13' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+}
+
+.quiz-actions {
+  padding: 16px 24px 32px;
+  display: flex;
+  gap: 10px;
+}
+.quiz-actions .btn { flex: 1; height: 52px; font-size: 15px; }
+
+/* ===== PAYWALL ===== */
+.paywall-screen {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.paywall-screen::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+.paywall-screen__close {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+.paywall-screen__content {
+  flex: 1;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  position: relative;
+}
+.paywall-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.paywall-badge i { font-size: 14px; }
+.paywall-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+.paywall-desc {
+  font-size: 14px;
+  color: var(--text-mute);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+.paywall-features {
+  list-style: none;
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.paywall-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.paywall-feature__icon {
+  width: 24px;
+  height: 24px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.paywall-feature__icon i { font-size: 14px; }
+.paywall-feature strong { display: block; color: var(--text); margin-bottom: 2px; }
+.paywall-feature span { color: var(--text-mute); font-size: 13px; }
+.paywall-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.paywall-plan {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+.paywall-plan:hover { border-color: var(--text-dim); }
+.paywall-plan.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.paywall-plan__check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+.paywall-plan.is-selected .paywall-plan__check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.paywall-plan.is-selected .paywall-plan__check::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%230A0E13' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-size: contain;
+}
+.paywall-plan__name {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.paywall-plan__sub {
+  font-size: 12px;
+  color: var(--text-mute);
+}
+.paywall-plan__price-block { text-align: right; padding-right: 30px; }
+.paywall-plan__amount {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 17px;
+  font-weight: 700;
+}
+.paywall-plan__discount {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.paywall-screen__footer {
+  padding: 16px 24px 32px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.paywall-screen__cta {
+  width: 100%;
+  height: 56px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-lg);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  margin-bottom: 10px;
+}
+.paywall-screen__cta:hover { background: var(--accent-bright); }
+.paywall-screen__hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ===== TRACKED ITEMS DETAIL ===== */
+.tracked-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.tracked-screen__header {
+  padding: 12px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.tracked-screen__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.tracked-screen__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.tracked-screen__count {
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.tracked-screen__count strong { color: var(--accent); }
+.tracked-filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.tracked-filters::-webkit-scrollbar { display: none; }
+.tracked-filter {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-mute);
+  padding: 6px 12px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.tracked-filter.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tracked-list-full {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tracked-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.tracked-card:hover { border-color: var(--text-dim); }
+.tracked-card--alert {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgba(0, 217, 166, 0.04) 0%, var(--bg-surface) 100%);
+  position: relative;
+}
+.tracked-card--alert::before {
+  content: 'ПОДЕШЕВЕЛО';
+  position: absolute;
+  top: -8px;
+  left: 14px;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.tracked-card__top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+.tracked-card__icon {
+  width: 52px;
+  height: 52px;
+  background: var(--bg-raised);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.tracked-card__info { flex: 1; min-width: 0; }
+.tracked-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.tracked-card__meta {
+  font-size: 12px;
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tracked-card__chart {
+  height: 36px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.tracked-card__price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.tracked-card__price-now {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 19px;
+  font-weight: 700;
+}
+.tracked-card__price-was {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: line-through;
+  margin-left: 8px;
+}
+.tracked-card__change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tracked-card__change--down { color: var(--green); }
+.tracked-card__change--up { color: var(--red); }
+.tracked-card__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.tracked-card__btn {
+  flex: 1;
+  height: 34px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.tracked-card__btn:hover { background: var(--bg-raised); }
+.tracked-card__btn--buy {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.tracked-card__btn--buy:hover { background: var(--accent-bright); }
+.tracked-card__btn i { font-size: 14px; }
+
+/* ===== SHARE ARTIFACT ===== */
+.share-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.share-screen__top {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.share-screen__title {
+  font-size: 17px;
+  font-weight: 600;
+}
+.share-screen__body {
+  flex: 1;
+  padding: 8px 20px 20px;
+  overflow-y: auto;
+}
+
+/* Preview карточки которую расшарят */
+.share-preview {
+  background: linear-gradient(135deg, #0F1A1F 0%, #161B22 100%);
+  border: 1px solid var(--accent);
+  border-radius: var(--r-xl);
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.share-preview::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  pointer-events: none;
+}
+.share-preview__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.share-preview__logo {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+.share-preview__brand {
+  font-size: 13px;
+  font-weight: 600;
+}
+.share-preview__brand-dot {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-left: auto;
+}
+.share-preview__verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.share-preview__query {
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 4px;
+  position: relative;
+}
+.share-preview__product {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.share-preview__reason {
+  font-size: 12px;
+  color: var(--text-mute);
+  line-height: 1.4;
+  margin-bottom: 14px;
+}
+.share-preview__price-block {
+  background: var(--bg);
+  border-radius: var(--r-md);
+  padding: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.share-preview__price-label {
+  font-size: 11px;
+  color: var(--text-mute);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.share-preview__price-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.share-preview__store-tag {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+.share-preview__footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.share-preview__footer i { font-size: 14px; color: var(--accent); }
+
+.share-channels {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.share-channel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 200ms var(--ease);
+}
+.share-channel:hover { transform: translateY(-2px); }
+.share-channel__icon {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-raised);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 26px;
+  transition: all 200ms var(--ease);
+}
+.share-channel:hover .share-channel__icon {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.share-channel__name {
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.share-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 200ms var(--ease);
+}
+.share-action:hover { border-color: var(--text-dim); }
+.share-action__icon {
+  color: var(--text-mute);
+  font-size: 22px;
+}
+.share-action__text {
+  flex: 1;
+  font-size: 14px;
+}
+.share-action__chevron {
+  color: var(--text-dim);
+  font-size: 18px;
+}
+
+/* ===== EMPTY STATES ===== */
+.empty-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.empty-screen__head {
+  padding: 12px 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.empty-screen__title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.empty-screen__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 32px 64px;
+  text-align: center;
+}
+.empty-state__icon-wrap {
+  width: 96px;
+  height: 96px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+.empty-state__icon-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 1px dashed var(--border);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+.empty-state__icon-wrap i {
+  color: var(--text-mute);
+  font-size: 40px;
+}
+.empty-state__title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.empty-state__desc {
+  font-size: 14px;
+  color: var(--text-mute);
+  line-height: 1.5;
+  margin-bottom: 28px;
+  max-width: 280px;
+}
+.empty-state__btn {
+  height: 48px;
+  padding: 0 24px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--r-md);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 200ms var(--ease);
+}
+.empty-state__btn:hover { background: var(--accent-bright); }
+.empty-state__btn i { font-size: 18px; }
+.empty-state__tabs {
+  display: flex;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 4px;
+  margin: 16px 20px;
+  gap: 4px;
+}
+.empty-state__tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-mute);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: all 200ms var(--ease);
+}
+.empty-state__tab.is-active {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ===== NAV ===== -->
+  <aside class="stage__nav">
+    <div class="stage__title">Прототип · Этап 5</div>
+    <h1 class="stage__heading">AI-шопер</h1>
+    <p class="stage__desc">8 экранов P1 (must для MVP). 3 примера товаров. Кликабельно.</p>
+
+    <ul class="stage__screens">
+      <li class="stage__screen" data-screen="welcome" onclick="goTo('welcome')">
+        <span class="stage__screen-num">00</span>
+        <span class="stage__screen-name">Welcome</span>
+      </li>
+      <li class="stage__screen" data-screen="quiz" onclick="goTo('quiz')">
+        <span class="stage__screen-num">00a</span>
+        <span class="stage__screen-name">Quiz онбординг</span>
+      </li>
+      <li class="stage__screen is-active" data-screen="home" onclick="goTo('home')">
+        <span class="stage__screen-num">01</span>
+        <span class="stage__screen-name">Home</span>
+      </li>
+      <li class="stage__screen" data-screen="input" onclick="goTo('input')">
+        <span class="stage__screen-num">02</span>
+        <span class="stage__screen-name">Input · Что найти</span>
+      </li>
+      <li class="stage__screen" data-screen="processing" onclick="goTo('processing')">
+        <span class="stage__screen-num">2a</span>
+        <span class="stage__screen-name">Processing</span>
+      </li>
+      <li class="stage__screen" data-screen="results" onclick="goTo('results')">
+        <span class="stage__screen-num">03</span>
+        <span class="stage__screen-name">Results · Топ-3</span>
+      </li>
+      <li class="stage__screen" data-screen="share" onclick="goTo('share')">
+        <span class="stage__screen-num">04</span>
+        <span class="stage__screen-name">Поделиться</span>
+      </li>
+      <li class="stage__screen" data-screen="tracked" onclick="goTo('tracked')">
+        <span class="stage__screen-num">05</span>
+        <span class="stage__screen-name">Слежу за ценой</span>
+      </li>
+      <li class="stage__screen" data-screen="paywall" onclick="goTo('paywall')">
+        <span class="stage__screen-num">06</span>
+        <span class="stage__screen-name">Soft paywall</span>
+      </li>
+      <li class="stage__screen" data-screen="empty" onclick="goTo('empty')">
+        <span class="stage__screen-num">07</span>
+        <span class="stage__screen-name">Empty state</span>
+      </li>
+    </ul>
+
+    <div class="example-switcher">
+      <div class="example-switcher__label">Пример товара</div>
+      <div class="example-switcher__options">
+        <button class="example-switcher__btn is-active" data-example="vacuum" onclick="setExample('vacuum')">🤖 Робот-пылесос</button>
+        <button class="example-switcher__btn" data-example="headphones" onclick="setExample('headphones')">🎧 Наушники</button>
+        <button class="example-switcher__btn" data-example="jacket" onclick="setExample('jacket')">🧥 Зимняя куртка</button>
+      </div>
+    </div>
+
+    <div class="stage__hint" style="margin-top: 16px;">
+      <strong>Как пробовать:</strong>
+      кликай по экранам слева, меняй примеры товаров, нажми голосовую кнопку на Input — увидишь listening-режим
+    </div>
+  </aside>
+
+  <!-- ===== PHONE ===== -->
+  <div class="phone-wrap">
+    <div class="phone">
+
+      <!-- ============ SCREEN 1: HOME ============ -->
+      <div class="screen is-active" id="screen-home">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+
+        <div class="top-bar">
+          <div class="top-bar__brand">
+            <div class="top-bar__logo">A</div>
+            <div class="top-bar__name">AI-шопер</div>
+          </div>
+          <div class="top-bar__actions">
+            <button class="icon-btn" aria-label="Уведомления">
+              <i class="ti ti-bell"></i>
+              <span class="icon-btn__dot"></span>
+            </button>
+            <button class="icon-btn" aria-label="Профиль"><i class="ti ti-user"></i></button>
+          </div>
+        </div>
+
+        <div class="scroll">
+          <div class="greeting">
+            <div class="greeting__hi">Привет,</div>
+            <div class="greeting__name">Что найдём сегодня?</div>
+          </div>
+
+          <div class="cta-card" onclick="goTo('input')">
+            <div class="cta-card__title">Что найти?</div>
+            <div class="cta-card__sub">Опиши словами — найду лучшие варианты на Ozon, WB и Я.Маркет</div>
+            <div class="cta-card__action">
+              <i class="ti ti-microphone"></i>
+              <span>Сказать или написать</span>
+              <i class="ti ti-arrow-right" style="margin-left: auto;"></i>
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span class="section-title__name">Ищут сейчас</span>
+          </div>
+          <div class="trending">
+            <div class="trend-chip" onclick="goTo('input', 'наушники с шумоподавлением')">
+              <i class="ti ti-headphones"></i> Наушники
+            </div>
+            <div class="trend-chip" onclick="goTo('input', 'робот-пылесос')">
+              <i class="ti ti-robot"></i> Пылесос
+            </div>
+            <div class="trend-chip" onclick="goTo('input', 'зимняя куртка')">
+              <i class="ti ti-shirt"></i> Куртка
+            </div>
+            <div class="trend-chip" onclick="goTo('input', 'кофемашина')">
+              <i class="ti ti-coffee"></i> Кофемашина
+            </div>
+            <div class="trend-chip" onclick="goTo('input', 'смарт часы')">
+              <i class="ti ti-clock"></i> Часы
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span class="section-title__name">Следишь за ценой</span>
+            <span class="section-title__link">Все →</span>
+          </div>
+          <div class="tracked-list">
+            <div class="tracked-item" onclick="goTo('tracked')">
+              <div class="tracked-item__icon"><i class="ti ti-robot"></i></div>
+              <div class="tracked-item__info">
+                <div class="tracked-item__name">Xiaomi Robot Vacuum E12</div>
+                <div class="tracked-item__price">
+                  <span class="tracked-item__current">22 190 ₽</span>
+                  <span class="tracked-item__change tracked-item__change--down">
+                    <i class="ti ti-arrow-down"></i> 2 800 ₽
+                  </span>
+                </div>
+              </div>
+              <i class="ti ti-chevron-right" style="color: var(--text-dim); font-size: 20px;"></i>
+            </div>
+            <div class="tracked-item" onclick="goTo('tracked')">
+              <div class="tracked-item__icon"><i class="ti ti-headphones"></i></div>
+              <div class="tracked-item__info">
+                <div class="tracked-item__name">Sony WH-1000XM5</div>
+                <div class="tracked-item__price">
+                  <span class="tracked-item__current">28 490 ₽</span>
+                  <span class="tracked-item__change tracked-item__change--up">
+                    <i class="ti ti-arrow-up"></i> 1 500 ₽
+                  </span>
+                </div>
+              </div>
+              <i class="ti ti-chevron-right" style="color: var(--text-dim); font-size: 20px;"></i>
+            </div>
+            <div class="tracked-item" onclick="goTo('tracked')">
+              <div class="tracked-item__icon"><i class="ti ti-coffee"></i></div>
+              <div class="tracked-item__info">
+                <div class="tracked-item__name">DeLonghi Magnifica S</div>
+                <div class="tracked-item__price">
+                  <span class="tracked-item__current">42 990 ₽</span>
+                  <span class="tracked-item__change tracked-item__change--down">
+                    <i class="ti ti-arrow-down"></i> 5 100 ₽
+                  </span>
+                </div>
+              </div>
+              <i class="ti ti-chevron-right" style="color: var(--text-dim); font-size: 20px;"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bottom-nav">
+          <div class="nav-item is-active"><i class="ti ti-home-2"></i> Главная</div>
+          <div class="nav-item" onclick="goTo('tracked')"><i class="ti ti-bell"></i> Слежу</div>
+          <div class="nav-item" onclick="goTo('empty')"><i class="ti ti-history"></i> История</div>
+          <div class="nav-item"><i class="ti ti-user"></i> Я</div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 2: INPUT ============ -->
+      <div class="screen" id="screen-input">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+
+        <div class="top-bar">
+          <button class="icon-btn" onclick="goTo('home')" aria-label="Назад">
+            <i class="ti ti-arrow-left"></i>
+          </button>
+        </div>
+
+        <div class="scroll">
+          <h1 class="input-screen__heading">Что найти?</h1>
+          <p class="input-screen__sub">Опиши обычными словами. Чем подробнее — тем точнее найду.</p>
+
+          <div class="search-field" onclick="document.getElementById('searchInput').focus()">
+            <textarea id="searchInput" class="search-field__input" placeholder="Например, робот-пылесос до 30 тысяч, у меня дома кот с длинной шерстью..." rows="4"></textarea>
+          </div>
+
+          <button class="voice-btn-large" onclick="startVoice()">
+            <i class="ti ti-microphone"></i> Сказать голосом
+          </button>
+
+          <div class="suggestions-title">Может быть это?</div>
+          <div class="suggestions">
+            <div class="suggestion" onclick="useSuggestion('робот-пылесос до 30к, длинная шерсть кота, влажная уборка')">
+              <i class="ti ti-robot suggestion__icon"></i>
+              <div class="suggestion__text">робот-пылесос до 30к для кота</div>
+            </div>
+            <div class="suggestion" onclick="useSuggestion('наушники с шумоподавлением до 20 тысяч, для перелётов')">
+              <i class="ti ti-headphones suggestion__icon"></i>
+              <div class="suggestion__text">наушники с шумодавом до 20к</div>
+            </div>
+            <div class="suggestion" onclick="useSuggestion('зимняя куртка мужская, размер L, тёплая, до -25')">
+              <i class="ti ti-shirt suggestion__icon"></i>
+              <div class="suggestion__text">зимняя куртка мужская L до −25</div>
+            </div>
+            <div class="suggestion" onclick="useSuggestion('детский самокат, возраст 5 лет, лёгкий')">
+              <i class="ti ti-scooter suggestion__icon"></i>
+              <div class="suggestion__text">самокат ребёнку 5 лет</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice overlay -->
+        <div class="voice-overlay" id="voiceOverlay">
+          <div class="voice-orb"><i class="ti ti-microphone"></i></div>
+          <div class="voice-overlay__status">Слушаю...</div>
+          <div class="voice-overlay__hint">Расскажи что ищешь. Можно длинно, я разберусь.</div>
+          <button class="voice-overlay__cancel" onclick="stopVoice()">Отменить</button>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 2a: PROCESSING ============ -->
+      <div class="screen" id="screen-processing">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+
+        <div class="processing-screen">
+          <div class="processing-header">
+            <div class="processing-header__title">Ищу варианты</div>
+            <div class="processing-header__sub" id="processingTime">обычно 30-60 секунд</div>
+          </div>
+
+          <div class="query-bubble" id="processingQuery">робот-пылесос до 30к для кота с длинной шерстью</div>
+
+          <div class="stages-list" id="stagesList">
+            <div class="stage-item stage-item--pending" data-stage="0">
+              <div class="stage-item__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage-item__spinner"></div>
+              <div class="stage-item__text">Понимаю запрос</div>
+              <div class="stage-item__time"></div>
+            </div>
+            <div class="stage-item stage-item--pending" data-stage="1">
+              <div class="stage-item__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage-item__spinner"></div>
+              <div class="stage-item__text">Сканирую Ozon</div>
+              <div class="stage-item__time"></div>
+            </div>
+            <div class="stage-item stage-item--pending" data-stage="2">
+              <div class="stage-item__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage-item__spinner"></div>
+              <div class="stage-item__text">Сканирую Wildberries</div>
+              <div class="stage-item__time"></div>
+            </div>
+            <div class="stage-item stage-item--pending" data-stage="3">
+              <div class="stage-item__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage-item__spinner"></div>
+              <div class="stage-item__text">Читаю отзывы</div>
+              <div class="stage-item__time"></div>
+            </div>
+            <div class="stage-item stage-item--pending" data-stage="4">
+              <div class="stage-item__icon"><i class="ti ti-circle"></i></div>
+              <div class="stage-item__spinner"></div>
+              <div class="stage-item__text">Выбираю топ-3</div>
+              <div class="stage-item__time"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 3: RESULTS ============ -->
+      <div class="screen" id="screen-results">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+
+        <div class="top-bar">
+          <button class="icon-btn" onclick="goTo('home')" aria-label="Назад">
+            <i class="ti ti-arrow-left"></i>
+          </button>
+          <button class="icon-btn" aria-label="Уточнить">
+            <i class="ti ti-adjustments-horizontal"></i>
+          </button>
+        </div>
+
+        <div class="scroll">
+          <div class="results-header">
+            <div class="results-header__query">
+              <i class="ti ti-search"></i>
+              <span id="resultsQuery">робот-пылесос до 30к для кота</span>
+            </div>
+            <h1 class="results-header__title">Нашёл 3 варианта</h1>
+            <p class="results-header__sub" id="resultsAnalyzed">Прочитал 187 отзывов · сравнил 3 маркетплейса · отсёк 12 накруток</p>
+          </div>
+
+          <div class="product-cards" id="productCards">
+            <!-- Cards рендерятся через JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 0: WELCOME ============ -->
+      <div class="screen" id="screen-welcome">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="welcome-screen">
+          <div class="welcome-screen__hero">
+            <div class="welcome-screen__logo">A</div>
+            <h1 class="welcome-screen__title">Привет.<br>Я найду <span>лучшее</span><br>на маркетплейсах.</h1>
+            <p class="welcome-screen__sub">Опиши обычными словами что нужно — за минуту найду топ-3 варианта с Ozon, WB и Я.Маркет.</p>
+            <div class="welcome-screen__benefits">
+              <div class="welcome-benefit">
+                <i class="ti ti-bolt"></i>
+                <span>Сравню цены по 3 маркетплейсам</span>
+              </div>
+              <div class="welcome-benefit">
+                <i class="ti ti-message-circle"></i>
+                <span>Прочитаю отзывы за тебя</span>
+              </div>
+              <div class="welcome-benefit">
+                <i class="ti ti-bell-ringing"></i>
+                <span>Скажу когда подешевеет</span>
+              </div>
+            </div>
+          </div>
+          <button class="welcome-screen__btn" onclick="goTo('quiz')">
+            Начать <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 0a: QUIZ ============ -->
+      <div class="screen" id="screen-quiz">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="quiz-screen">
+          <div class="quiz-back">
+            <button class="icon-btn" onclick="quizBack()" aria-label="Назад">
+              <i class="ti ti-arrow-left"></i>
+            </button>
+          </div>
+          <div class="quiz-progress">
+            <div class="quiz-progress__bar">
+              <div class="quiz-progress__fill" id="quizProgress" style="width: 25%"></div>
+            </div>
+            <span class="quiz-progress__step" id="quizStep">1 / 4</span>
+          </div>
+
+          <div class="quiz-content">
+            <!-- Step 1 -->
+            <div class="quiz-step" data-step="1">
+              <h2 class="quiz-content__title">Кто чаще покупает на маркетплейсах?</h2>
+              <p class="quiz-content__sub">Помогает понимать твой контекст</p>
+              <div class="quiz-options">
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-user quiz-option__icon"></i>
+                  <span class="quiz-option__text">Для себя</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-users quiz-option__icon"></i>
+                  <span class="quiz-option__text">Для семьи</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-gift quiz-option__icon"></i>
+                  <span class="quiz-option__text">Для подарков</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="quiz-step" data-step="2" style="display:none;">
+              <h2 class="quiz-content__title">Какие маркетплейсы используешь?</h2>
+              <p class="quiz-content__sub">Можно несколько</p>
+              <div class="quiz-options quiz-multi">
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <span class="quiz-option__text">Ozon</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <span class="quiz-option__text">Wildberries</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <span class="quiz-option__text">Яндекс Маркет</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <span class="quiz-option__text">Мегамаркет</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="quiz-step" data-step="3" style="display:none;">
+              <h2 class="quiz-content__title">Что для тебя важнее в выборе?</h2>
+              <p class="quiz-content__sub">Выбери главное</p>
+              <div class="quiz-options">
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-coin-rouble quiz-option__icon"></i>
+                  <span class="quiz-option__text">Цена</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-award quiz-option__icon"></i>
+                  <span class="quiz-option__text">Качество</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-truck-delivery quiz-option__icon"></i>
+                  <span class="quiz-option__text">Скорость доставки</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizOption(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-equal quiz-option__icon"></i>
+                  <span class="quiz-option__text">Всё важно поровну</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="quiz-step" data-step="4" style="display:none;">
+              <h2 class="quiz-content__title">Что чаще покупаешь?</h2>
+              <p class="quiz-content__sub">Можно несколько</p>
+              <div class="quiz-options quiz-multi">
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-device-tv quiz-option__icon"></i>
+                  <span class="quiz-option__text">Бытовая техника</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-headphones quiz-option__icon"></i>
+                  <span class="quiz-option__text">Электроника</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-sparkles quiz-option__icon"></i>
+                  <span class="quiz-option__text">Уход и красота</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-baby-carriage quiz-option__icon"></i>
+                  <span class="quiz-option__text">Детские товары</span>
+                </div>
+                <div class="quiz-option" onclick="selectQuizMulti(this)">
+                  <span class="quiz-option__radio"></span>
+                  <i class="ti ti-shirt quiz-option__icon"></i>
+                  <span class="quiz-option__text">Одежда и обувь</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-actions">
+            <button class="btn btn--primary btn--block" id="quizNext" onclick="quizNext()" style="opacity: 0.5;">
+              Дальше
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 4: SHARE ============ -->
+      <div class="screen" id="screen-share">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="share-screen">
+          <div class="share-screen__top">
+            <button class="icon-btn" onclick="goTo('results')" aria-label="Назад">
+              <i class="ti ti-x"></i>
+            </button>
+            <span class="share-screen__title">Поделиться находкой</span>
+            <div style="width: 36px;"></div>
+          </div>
+
+          <div class="share-screen__body">
+            <!-- Preview -->
+            <div class="share-preview">
+              <div class="share-preview__header">
+                <div class="share-preview__logo">A</div>
+                <div class="share-preview__brand">AI-шопер</div>
+                <div class="share-preview__brand-dot">@ai_shoper</div>
+              </div>
+              <div class="share-preview__verdict">🥇 Лучший выбор</div>
+              <div class="share-preview__query" id="sharePreviewQuery">робот-пылесос до 30к для кота</div>
+              <div class="share-preview__product" id="sharePreviewProduct">Xiaomi Robot Vacuum E12</div>
+              <div class="share-preview__reason" id="sharePreviewReason">Хорошо справляется с длинной шерстью кота — упомянуто в 67% отзывов</div>
+              <div class="share-preview__price-block">
+                <div>
+                  <div class="share-preview__price-label">Лучшая цена</div>
+                  <div class="share-preview__price-value" id="sharePreviewPrice">24 990 ₽</div>
+                </div>
+                <div class="share-preview__store-tag" id="sharePreviewStore">Ozon</div>
+              </div>
+              <div class="share-preview__footer">
+                <i class="ti ti-bolt"></i>
+                <span>Прочитано 187 отзывов · отсечено 12 накруток</span>
+              </div>
+            </div>
+
+            <!-- Channels -->
+            <div class="share-channels">
+              <div class="share-channel" onclick="alert('Откроется Telegram с готовым сообщением')">
+                <div class="share-channel__icon"><i class="ti ti-brand-telegram"></i></div>
+                <div class="share-channel__name">Telegram</div>
+              </div>
+              <div class="share-channel" onclick="alert('Откроется WhatsApp')">
+                <div class="share-channel__icon"><i class="ti ti-brand-whatsapp"></i></div>
+                <div class="share-channel__name">WhatsApp</div>
+              </div>
+              <div class="share-channel" onclick="alert('Откроется список')">
+                <div class="share-channel__icon"><i class="ti ti-message"></i></div>
+                <div class="share-channel__name">SMS</div>
+              </div>
+              <div class="share-channel" onclick="alert('Ещё варианты...')">
+                <div class="share-channel__icon"><i class="ti ti-dots"></i></div>
+                <div class="share-channel__name">Ещё</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="share-actions">
+              <div class="share-action" onclick="alert('Ссылка скопирована')">
+                <i class="ti ti-link share-action__icon"></i>
+                <div class="share-action__text">Скопировать ссылку</div>
+                <i class="ti ti-chevron-right share-action__chevron"></i>
+              </div>
+              <div class="share-action" onclick="alert('Сохранено в галерею')">
+                <i class="ti ti-photo share-action__icon"></i>
+                <div class="share-action__text">Сохранить как картинку</div>
+                <i class="ti ti-chevron-right share-action__chevron"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 5: TRACKED ============ -->
+      <div class="screen" id="screen-tracked">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="tracked-screen">
+          <div class="tracked-screen__header">
+            <div class="tracked-screen__top">
+              <h1 class="tracked-screen__title">Слежу за ценой</h1>
+              <span class="tracked-screen__count"><strong>3</strong> подешевели</span>
+            </div>
+            <div class="tracked-filters">
+              <div class="tracked-filter is-active">Все · 7</div>
+              <div class="tracked-filter">Подешевело · 3</div>
+              <div class="tracked-filter">Без изменений · 3</div>
+              <div class="tracked-filter">Подорожало · 1</div>
+            </div>
+          </div>
+
+          <div class="tracked-list-full">
+            <!-- Alert card -->
+            <div class="tracked-card tracked-card--alert">
+              <div class="tracked-card__top">
+                <div class="tracked-card__icon"><i class="ti ti-robot"></i></div>
+                <div class="tracked-card__info">
+                  <div class="tracked-card__name">Xiaomi Robot Vacuum E12</div>
+                  <div class="tracked-card__meta">Ozon · следишь 12 дней</div>
+                </div>
+              </div>
+              <svg class="tracked-card__chart" viewBox="0 0 320 36" preserveAspectRatio="none">
+                <polyline points="0,12 30,14 60,11 90,16 120,18 150,15 180,17 210,13 240,16 270,14 290,20 320,28" fill="none" stroke="#00D9A6" stroke-width="2"/>
+                <circle cx="320" cy="28" r="4" fill="#00D9A6"/>
+              </svg>
+              <div class="tracked-card__price-row">
+                <div>
+                  <span class="tracked-card__price-now">22 190 ₽</span>
+                  <span class="tracked-card__price-was">24 990 ₽</span>
+                </div>
+                <span class="tracked-card__change tracked-card__change--down">
+                  <i class="ti ti-arrow-down"></i> 2 800 ₽
+                </span>
+              </div>
+              <div class="tracked-card__actions">
+                <button class="tracked-card__btn tracked-card__btn--buy">
+                  <i class="ti ti-shopping-bag"></i> Купить
+                </button>
+                <button class="tracked-card__btn">
+                  <i class="ti ti-bell-off"></i> Снять
+                </button>
+              </div>
+            </div>
+
+            <!-- Regular cards -->
+            <div class="tracked-card">
+              <div class="tracked-card__top">
+                <div class="tracked-card__icon"><i class="ti ti-headphones"></i></div>
+                <div class="tracked-card__info">
+                  <div class="tracked-card__name">Sony WH-1000XM5</div>
+                  <div class="tracked-card__meta">WB · следишь 5 дней</div>
+                </div>
+              </div>
+              <svg class="tracked-card__chart" viewBox="0 0 320 36" preserveAspectRatio="none">
+                <polyline points="0,20 30,18 60,22 90,17 120,15 150,16 180,12 210,14 240,11 270,9 290,11 320,8" fill="none" stroke="#F85149" stroke-width="2"/>
+                <circle cx="320" cy="8" r="4" fill="#F85149"/>
+              </svg>
+              <div class="tracked-card__price-row">
+                <div>
+                  <span class="tracked-card__price-now">28 490 ₽</span>
+                  <span class="tracked-card__price-was">26 990 ₽</span>
+                </div>
+                <span class="tracked-card__change tracked-card__change--up">
+                  <i class="ti ti-arrow-up"></i> 1 500 ₽
+                </span>
+              </div>
+            </div>
+
+            <div class="tracked-card">
+              <div class="tracked-card__top">
+                <div class="tracked-card__icon"><i class="ti ti-coffee"></i></div>
+                <div class="tracked-card__info">
+                  <div class="tracked-card__name">DeLonghi Magnifica S</div>
+                  <div class="tracked-card__meta">Ozon · следишь 23 дня</div>
+                </div>
+              </div>
+              <svg class="tracked-card__chart" viewBox="0 0 320 36" preserveAspectRatio="none">
+                <polyline points="0,8 30,10 60,12 90,14 120,15 150,18 180,20 210,22 240,24 270,26 290,28 320,30" fill="none" stroke="#3FB950" stroke-width="2"/>
+                <circle cx="320" cy="30" r="4" fill="#3FB950"/>
+              </svg>
+              <div class="tracked-card__price-row">
+                <div>
+                  <span class="tracked-card__price-now">42 990 ₽</span>
+                  <span class="tracked-card__price-was">48 090 ₽</span>
+                </div>
+                <span class="tracked-card__change tracked-card__change--down">
+                  <i class="ti ti-arrow-down"></i> 5 100 ₽
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bottom-nav">
+            <div class="nav-item" onclick="goTo('home')"><i class="ti ti-home-2"></i> Главная</div>
+            <div class="nav-item is-active"><i class="ti ti-bell"></i> Слежу</div>
+            <div class="nav-item"><i class="ti ti-history"></i> История</div>
+            <div class="nav-item"><i class="ti ti-user"></i> Я</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 6: PAYWALL ============ -->
+      <div class="screen" id="screen-paywall">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="paywall-screen">
+          <div class="paywall-screen__close">
+            <button class="icon-btn" onclick="goTo('home')" aria-label="Закрыть">
+              <i class="ti ti-x"></i>
+            </button>
+          </div>
+          <div class="paywall-screen__content">
+            <div class="paywall-badge">
+              <i class="ti ti-bolt"></i> Premium
+            </div>
+            <h1 class="paywall-title">Безлимит поисков и алерты цен</h1>
+            <p class="paywall-desc">Ты использовал 3 бесплатных запроса. Premium открывает всё.</p>
+
+            <ul class="paywall-features">
+              <li class="paywall-feature">
+                <span class="paywall-feature__icon"><i class="ti ti-infinity"></i></span>
+                <div>
+                  <strong>Безлимит запросов</strong>
+                  <span>Ищи сколько нужно, без ограничений</span>
+                </div>
+              </li>
+              <li class="paywall-feature">
+                <span class="paywall-feature__icon"><i class="ti ti-bell-ringing"></i></span>
+                <div>
+                  <strong>Алерты на изменение цен</strong>
+                  <span>Скажу когда подешевеет на отслеживаемых</span>
+                </div>
+              </li>
+              <li class="paywall-feature">
+                <span class="paywall-feature__icon"><i class="ti ti-history"></i></span>
+                <div>
+                  <strong>История запросов навсегда</strong>
+                  <span>Все находки сохранятся в твоём аккаунте</span>
+                </div>
+              </li>
+              <li class="paywall-feature">
+                <span class="paywall-feature__icon"><i class="ti ti-rocket"></i></span>
+                <div>
+                  <strong>Приоритет в очереди</strong>
+                  <span>Поиск в 2 раза быстрее</span>
+                </div>
+              </li>
+            </ul>
+
+            <div class="paywall-plans">
+              <div class="paywall-plan is-selected" onclick="selectPaywallPlan(this)">
+                <div class="paywall-plan__check"></div>
+                <div>
+                  <div class="paywall-plan__name">Год</div>
+                  <div class="paywall-plan__sub">≈ 410 ₽/мес</div>
+                </div>
+                <div class="paywall-plan__price-block">
+                  <div class="paywall-plan__amount">4 900 ₽</div>
+                  <div class="paywall-plan__discount">−31% выгода</div>
+                </div>
+              </div>
+              <div class="paywall-plan" onclick="selectPaywallPlan(this)">
+                <div class="paywall-plan__check"></div>
+                <div>
+                  <div class="paywall-plan__name">Месяц</div>
+                  <div class="paywall-plan__sub">пробуй без обязательств</div>
+                </div>
+                <div class="paywall-plan__price-block">
+                  <div class="paywall-plan__amount">590 ₽</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="paywall-screen__footer">
+            <button class="paywall-screen__cta">7 дней бесплатно</button>
+            <div class="paywall-screen__hint">Отмена в любой момент. Без автосписаний после trial.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 7: EMPTY STATE ============ -->
+      <div class="screen" id="screen-empty">
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-bar__icons">
+            <i class="ti ti-signal-4g"></i>
+            <i class="ti ti-wifi"></i>
+            <i class="ti ti-battery-3"></i>
+          </div>
+        </div>
+        <div class="empty-screen">
+          <div class="empty-screen__head">
+            <button class="icon-btn" onclick="goTo('home')" aria-label="Назад">
+              <i class="ti ti-arrow-left"></i>
+            </button>
+            <h1 class="empty-screen__title">Слежу за ценой</h1>
+          </div>
+
+          <div class="empty-state__tabs">
+            <button class="empty-state__tab is-active" onclick="switchEmptyTab(this, 'tracked')">Слежу</button>
+            <button class="empty-state__tab" onclick="switchEmptyTab(this, 'history')">История</button>
+            <button class="empty-state__tab" onclick="switchEmptyTab(this, 'errors')">Ошибка</button>
+          </div>
+
+          <div class="empty-screen__body" id="emptyTrackedContent">
+            <div class="empty-state__icon-wrap">
+              <i class="ti ti-bell"></i>
+            </div>
+            <h2 class="empty-state__title">Пока ничего не отслеживаешь</h2>
+            <p class="empty-state__desc">Когда найдёшь интересный товар, нажми «Следить» — пришлём алерт когда подешевеет</p>
+            <button class="empty-state__btn" onclick="goTo('input')">
+              <i class="ti ti-search"></i> Найти товар
+            </button>
+          </div>
+
+          <div class="empty-screen__body" id="emptyHistoryContent" style="display:none;">
+            <div class="empty-state__icon-wrap">
+              <i class="ti ti-history"></i>
+            </div>
+            <h2 class="empty-state__title">История пустая</h2>
+            <p class="empty-state__desc">Здесь будут все твои запросы. Сейчас ты ещё ничего не искал.</p>
+            <button class="empty-state__btn" onclick="goTo('input')">
+              <i class="ti ti-search"></i> Первый запрос
+            </button>
+          </div>
+
+          <div class="empty-screen__body" id="emptyErrorsContent" style="display:none;">
+            <div class="empty-state__icon-wrap" style="background: rgba(248, 81, 73, 0.08); border-color: rgba(248, 81, 73, 0.3);">
+              <i class="ti ti-cloud-off" style="color: var(--red);"></i>
+            </div>
+            <h2 class="empty-state__title">Что-то пошло не так</h2>
+            <p class="empty-state__desc">Не удалось получить данные с маркетплейсов. Обычно помогает повторить через минуту.</p>
+            <button class="empty-state__btn" onclick="goTo('input')">
+              <i class="ti ti-refresh"></i> Повторить
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SCREEN 0a: WELCOME ============ -->
+
+    </div>
+  </div>
+
+</div>
+
+<div class="hint-bar">
+  <i class="ti ti-info-circle"></i>
+  <div>
+    <strong>Это интерактивный прототип.</strong> Все цены и товары для демонстрации. Реальный продукт сканирует маркетплейсы в момент запроса.
+  </div>
+</div>
+
+<script>
+// ===== Examples data =====
+const examples = {
+  vacuum: {
+    query: 'робот-пылесос до 30к для кота с длинной шерстью',
+    queryShort: 'робот-пылесос до 30к для кота',
+    analyzed: 'Прочитал 187 отзывов · сравнил 3 маркетплейса · отсёк 12 накруток',
+    products: [
+      {
+        rank: 'gold', medal: '🥇', rankText: 'Лучший выбор', checked: true,
+        icon: 'robot',
+        name: 'Xiaomi Robot Vacuum E12',
+        reason: 'Хорошо справляется с длинной шерстью кота — упомянуто в 67% отзывов. Тихий режим работы.',
+        prices: [
+          { store: 'Ozon', amount: '24 990 ₽', best: true },
+          { store: 'WB', amount: '27 500 ₽', best: false },
+          { store: 'Я.Маркет', amount: '25 800 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'silver', medal: '🥈', rankText: 'Альтернатива',
+        icon: 'robot',
+        name: 'Roborock Q5 Pro',
+        reason: 'Дороже, но мощнее. Подойдёт если важна скорость уборки и большая площадь.',
+        prices: [
+          { store: 'WB', amount: '28 990 ₽', best: true },
+          { store: 'Ozon', amount: '29 500 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'bronze', medal: '🥉', rankText: 'Бюджетный',
+        icon: 'robot',
+        name: 'Dreame F9 Pro',
+        reason: 'Самый недорогой в категории. Базовая функциональность, без влажной уборки.',
+        prices: [
+          { store: 'Ozon', amount: '15 490 ₽', best: true },
+          { store: 'WB', amount: '16 200 ₽', best: false }
+        ]
+      }
+    ]
+  },
+  headphones: {
+    query: 'наушники с шумоподавлением до 20 тысяч, для перелётов',
+    queryShort: 'наушники с шумодавом до 20к',
+    analyzed: 'Прочитал 243 отзыва · сравнил 3 маркетплейса · отсёк 18 накруток',
+    products: [
+      {
+        rank: 'gold', medal: '🥇', rankText: 'Лучший выбор', checked: true,
+        icon: 'headphones',
+        name: 'Sony WH-CH720N',
+        reason: 'Лучший шумодав в бюджете. 35 часов автономности, складные — идеально в самолёт.',
+        prices: [
+          { store: 'Я.Маркет', amount: '13 990 ₽', best: true },
+          { store: 'Ozon', amount: '14 500 ₽', best: false },
+          { store: 'WB', amount: '15 200 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'silver', medal: '🥈', rankText: 'Премиум-выбор',
+        icon: 'headphones',
+        name: 'Anker Soundcore Q45',
+        reason: 'Чуть слабее шумодав, но звук получше и LDAC. Хорошие отзывы по микрофону для звонков.',
+        prices: [
+          { store: 'Ozon', amount: '16 990 ₽', best: true },
+          { store: 'WB', amount: '17 500 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'bronze', medal: '🥉', rankText: 'Бюджетный',
+        icon: 'headphones',
+        name: 'Edifier W820NB Plus',
+        reason: 'Базовый шумодав, неплохой звук. Если бюджет жмёт — рабочий вариант.',
+        prices: [
+          { store: 'WB', amount: '7 990 ₽', best: true },
+          { store: 'Ozon', amount: '8 300 ₽', best: false }
+        ]
+      }
+    ]
+  },
+  jacket: {
+    query: 'зимняя куртка мужская, размер L, тёплая, до -25',
+    queryShort: 'зимняя куртка мужская L до −25',
+    analyzed: 'Прочитал 156 отзывов · сравнил 3 маркетплейса · отсёк 8 накруток',
+    products: [
+      {
+        rank: 'gold', medal: '🥇', rankText: 'Лучший выбор', checked: true,
+        icon: 'coat',
+        name: 'Bask Vorgol Light',
+        reason: 'Пуховая, реально держит −25. Российский бренд, в отзывах хвалят посадку на L.',
+        prices: [
+          { store: 'Ozon', amount: '18 990 ₽', best: true },
+          { store: 'WB', amount: '21 500 ₽', best: false },
+          { store: 'Я.Маркет', amount: '19 800 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'silver', medal: '🥈', rankText: 'Альтернатива',
+        icon: 'coat',
+        name: 'Geographical Norway Bristol',
+        reason: 'Тёплая до −20, более молодёжный крой. Капюшон с мехом снимается.',
+        prices: [
+          { store: 'WB', amount: '12 500 ₽', best: true },
+          { store: 'Ozon', amount: '13 990 ₽', best: false }
+        ]
+      },
+      {
+        rank: 'bronze', medal: '🥉', rankText: 'Бюджетный',
+        icon: 'coat',
+        name: 'Outventure Polar',
+        reason: 'Синтепон, до −15 в активном режиме. Подойдёт если ходить много и быстро.',
+        prices: [
+          { store: 'Ozon', amount: '5 490 ₽', best: true },
+          { store: 'WB', amount: '5 990 ₽', best: false }
+        ]
+      }
+    ]
+  }
+};
+
+let currentExample = 'vacuum';
+let currentScreen = 'home';
+
+// ===== Navigation =====
+function goTo(screen, queryOverride) {
+  // если пришли с trending chip — поставим запрос
+  if (queryOverride && screen === 'input') {
+    setTimeout(() => {
+      document.getElementById('searchInput').value = queryOverride;
+    }, 100);
+  }
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('is-active'));
+  document.getElementById('screen-' + screen).classList.add('is-active');
+  
+  document.querySelectorAll('.stage__screen').forEach(s => s.classList.remove('is-active'));
+  const navItem = document.querySelector(`.stage__screen[data-screen="${screen}"]`);
+  if (navItem) navItem.classList.add('is-active');
+  
+  currentScreen = screen;
+  
+  // Если processing — запускаем анимацию
+  if (screen === 'processing') {
+    runProcessing();
+  }
+  // Если results — рендерим карточки
+  if (screen === 'results') {
+    renderResults();
+  }
+  // Если share — обновим preview
+  if (screen === 'share' && typeof updateSharePreview === 'function') {
+    updateSharePreview();
+  }
+  // Если quiz — сбросим
+  if (screen === 'quiz' && typeof quizReset === 'function') {
+    quizReset();
+  }
+}
+
+// ===== Example switch =====
+function setExample(name) {
+  currentExample = name;
+  document.querySelectorAll('.example-switcher__btn').forEach(b => b.classList.remove('is-active'));
+  document.querySelector(`.example-switcher__btn[data-example="${name}"]`).classList.add('is-active');
+  
+  const ex = examples[name];
+  // Обновим query на processing и results
+  document.getElementById('processingQuery').textContent = ex.query;
+  document.getElementById('resultsQuery').textContent = ex.queryShort;
+  document.getElementById('resultsAnalyzed').textContent = ex.analyzed;
+  
+  // Если уже на results — перерендерим
+  if (currentScreen === 'results') {
+    renderResults();
+  }
+}
+
+// ===== Voice overlay =====
+function startVoice() {
+  document.getElementById('voiceOverlay').classList.add('is-active');
+  // Auto-stop через 3 сек для демо
+  setTimeout(() => {
+    if (document.getElementById('voiceOverlay').classList.contains('is-active')) {
+      stopVoice();
+      const ex = examples[currentExample];
+      document.getElementById('searchInput').value = ex.query;
+      // Через паузу запускаем processing
+      setTimeout(() => goTo('processing'), 500);
+    }
+  }, 3000);
+}
+function stopVoice() {
+  document.getElementById('voiceOverlay').classList.remove('is-active');
+}
+
+// ===== Suggestion click =====
+function useSuggestion(text) {
+  document.getElementById('searchInput').value = text;
+  // Подобрать соответствующий пример
+  if (text.includes('наушн')) setExample('headphones');
+  else if (text.includes('куртк')) setExample('jacket');
+  else setExample('vacuum');
+  // Запустить поиск через паузу
+  setTimeout(() => goTo('processing'), 400);
+}
+
+// ===== Processing animation =====
+let processingTimers = [];
+function runProcessing() {
+  // Очистить таймеры если есть
+  processingTimers.forEach(t => clearTimeout(t));
+  processingTimers = [];
+  
+  // Сбросить состояние
+  document.querySelectorAll('.stage-item').forEach(s => {
+    s.className = 'stage-item stage-item--pending';
+    s.querySelector('.stage-item__time').textContent = '';
+  });
+  
+  const stages = document.querySelectorAll('.stage-item');
+  const durations = [800, 2000, 2000, 3000, 1500]; // ms per stage
+  let totalElapsed = 0;
+  
+  stages.forEach((stage, i) => {
+    const stageStartTime = totalElapsed;
+    
+    // Active
+    processingTimers.push(setTimeout(() => {
+      stage.classList.remove('stage-item--pending');
+      stage.classList.add('stage-item--active');
+      stage.querySelector('.stage-item__time').textContent = '...';
+    }, stageStartTime));
+    
+    totalElapsed += durations[i];
+    const stageEndTime = totalElapsed;
+    
+    // Done
+    processingTimers.push(setTimeout(() => {
+      stage.classList.remove('stage-item--active');
+      stage.classList.add('stage-item--done');
+      const elapsedSec = (stageEndTime / 1000).toFixed(1);
+      stage.querySelector('.stage-item__time').textContent = elapsedSec + 'с';
+      stage.querySelector('.stage-item__icon i').className = 'ti ti-check';
+    }, stageEndTime));
+  });
+  
+  // Переход на результаты
+  processingTimers.push(setTimeout(() => {
+    if (currentScreen === 'processing') {
+      goTo('results');
+    }
+  }, totalElapsed + 800));
+}
+
+// ===== Render results =====
+const iconMap = {
+  robot: 'ti-robot',
+  headphones: 'ti-headphones',
+  coat: 'ti-shirt'
+};
+
+function renderResults() {
+  const ex = examples[currentExample];
+  const container = document.getElementById('productCards');
+  container.innerHTML = '';
+  
+  ex.products.forEach((p, idx) => {
+    const card = document.createElement('div');
+    card.className = 'product-card' + (p.rank === 'gold' ? ' product-card--winner' : '');
+    
+    const pricesHtml = p.prices.map(pr => `
+      <div class="price-row ${pr.best ? 'price-row--best' : ''}">
+        <span class="price-row__store">${pr.store}</span>
+        <span class="price-row__amount">${pr.amount}</span>
+      </div>
+    `).join('');
+    
+    card.innerHTML = `
+      <div class="product-card__header">
+        <div class="product-card__rank ${p.rank === 'gold' ? 'product-card__rank--gold' : ''}">
+          <span class="product-card__rank-medal">${p.medal}</span> ${p.rankText}
+        </div>
+        ${p.checked ? '<span class="product-card__check"><i class="ti ti-check"></i> Проверен</span>' : ''}
+      </div>
+      <div class="product-card__image">
+        <i class="ti ${iconMap[p.icon]}"></i>
+      </div>
+      <div class="product-card__name">${p.name}</div>
+      <div class="product-card__reason">${p.reason}</div>
+      <div class="product-card__prices">${pricesHtml}</div>
+      <div class="product-card__actions">
+        <button class="btn btn--primary btn--block" onclick="event.stopPropagation(); alert('Откроется маркетплейс через нашу партнёрку');">Купить</button>
+        <button class="btn btn--secondary btn--icon" onclick="event.stopPropagation(); goTo('tracked');" aria-label="Следить"><i class="ti ti-bell"></i></button>
+        <button class="btn btn--secondary btn--icon" onclick="event.stopPropagation(); goTo('share');" aria-label="Поделиться"><i class="ti ti-share"></i></button>
+      </div>
+    `;
+    
+    container.appendChild(card);
+  });
+}
+
+// Initial render
+renderResults();
+
+// ===== QUIZ LOGIC =====
+let quizCurrentStep = 1;
+const QUIZ_TOTAL = 4;
+
+function selectQuizOption(el) {
+  // Single select — снимаем выделение с других
+  const container = el.closest('.quiz-options');
+  container.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('is-selected'));
+  el.classList.add('is-selected');
+  enableQuizNext();
+}
+
+function selectQuizMulti(el) {
+  el.classList.toggle('is-selected');
+  // Хотя бы один выбран — активируем "Дальше"
+  const container = el.closest('.quiz-options');
+  const anySelected = container.querySelectorAll('.quiz-option.is-selected').length > 0;
+  if (anySelected) enableQuizNext();
+}
+
+function enableQuizNext() {
+  const btn = document.getElementById('quizNext');
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+}
+
+function disableQuizNext() {
+  const btn = document.getElementById('quizNext');
+  btn.style.opacity = '0.5';
+  btn.style.pointerEvents = 'none';
+}
+
+function quizNext() {
+  if (quizCurrentStep < QUIZ_TOTAL) {
+    // Скрыть текущий шаг
+    document.querySelector(`.quiz-step[data-step="${quizCurrentStep}"]`).style.display = 'none';
+    quizCurrentStep++;
+    // Показать следующий
+    document.querySelector(`.quiz-step[data-step="${quizCurrentStep}"]`).style.display = 'block';
+    
+    // Обновить прогресс
+    const pct = (quizCurrentStep / QUIZ_TOTAL) * 100;
+    document.getElementById('quizProgress').style.width = pct + '%';
+    document.getElementById('quizStep').textContent = `${quizCurrentStep} / ${QUIZ_TOTAL}`;
+    
+    // Кнопка опять заблокирована
+    disableQuizNext();
+    
+    // На последнем шаге меняем текст
+    if (quizCurrentStep === QUIZ_TOTAL) {
+      document.getElementById('quizNext').textContent = 'Готово';
+    }
+  } else {
+    // Завершение — переход на Home
+    quizReset();
+    goTo('home');
+  }
+}
+
+function quizBack() {
+  if (quizCurrentStep > 1) {
+    document.querySelector(`.quiz-step[data-step="${quizCurrentStep}"]`).style.display = 'none';
+    quizCurrentStep--;
+    document.querySelector(`.quiz-step[data-step="${quizCurrentStep}"]`).style.display = 'block';
+    
+    const pct = (quizCurrentStep / QUIZ_TOTAL) * 100;
+    document.getElementById('quizProgress').style.width = pct + '%';
+    document.getElementById('quizStep').textContent = `${quizCurrentStep} / ${QUIZ_TOTAL}`;
+    
+    document.getElementById('quizNext').textContent = 'Дальше';
+    enableQuizNext(); // Назад идёт к уже отвеченному вопросу
+  } else {
+    goTo('welcome');
+  }
+}
+
+function quizReset() {
+  document.querySelectorAll('.quiz-step').forEach(s => s.style.display = 'none');
+  document.querySelector('.quiz-step[data-step="1"]').style.display = 'block';
+  document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('is-selected'));
+  quizCurrentStep = 1;
+  document.getElementById('quizProgress').style.width = '25%';
+  document.getElementById('quizStep').textContent = '1 / 4';
+  document.getElementById('quizNext').textContent = 'Дальше';
+  disableQuizNext();
+}
+
+// ===== PAYWALL =====
+function selectPaywallPlan(el) {
+  document.querySelectorAll('.paywall-plan').forEach(p => p.classList.remove('is-selected'));
+  el.classList.add('is-selected');
+}
+
+// ===== EMPTY STATE TABS =====
+function switchEmptyTab(btn, tab) {
+  document.querySelectorAll('.empty-state__tab').forEach(t => t.classList.remove('is-active'));
+  btn.classList.add('is-active');
+  document.getElementById('emptyTrackedContent').style.display = tab === 'tracked' ? 'flex' : 'none';
+  document.getElementById('emptyHistoryContent').style.display = tab === 'history' ? 'flex' : 'none';
+  document.getElementById('emptyErrorsContent').style.display = tab === 'errors' ? 'flex' : 'none';
+}
+
+// ===== SHARE PREVIEW UPDATE =====
+function updateSharePreview() {
+  const ex = examples[currentExample];
+  const winner = ex.products[0];
+  const bestPrice = winner.prices.find(p => p.best) || winner.prices[0];
+  
+  document.getElementById('sharePreviewQuery').textContent = ex.queryShort;
+  document.getElementById('sharePreviewProduct').textContent = winner.name;
+  document.getElementById('sharePreviewReason').textContent = winner.reason;
+  document.getElementById('sharePreviewPrice').textContent = bestPrice.amount;
+  document.getElementById('sharePreviewStore').textContent = bestPrice.store;
+}
+
+// Update share when example changes — extend setExample
+const originalSetExample = setExample;
+setExample = function(name) {
+  originalSetExample(name);
+  updateSharePreview();
+};
+
+// Initial
+updateSharePreview();
+quizReset();
+</script>
+
+</body>
+</html>
