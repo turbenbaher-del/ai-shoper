@@ -108,21 +108,25 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
         if not query:
             return []
 
-        async with MarketplaceClient() as http:
-            data = await http.get_json(
-                WB_SEARCH_URL,
-                params={
-                    "ab_testing": "false",
-                    "appType": "1",
-                    "curr": "rub",
-                    "dest": DEFAULT_DEST,
-                    "query": query,
-                    "resultset": "catalog",
-                    "sort": "popular",
-                    "spp": "30",
-                    "suppressSpellcheck": "false",
-                },
-            )
+        try:
+            async with MarketplaceClient() as http:
+                data = await http.get_json(
+                    WB_SEARCH_URL,
+                    params={
+                        "ab_testing": "false",
+                        "appType": "1",
+                        "curr": "rub",
+                        "dest": DEFAULT_DEST,
+                        "query": query,
+                        "resultset": "catalog",
+                        "sort": "popular",
+                        "spp": "30",
+                        "suppressSpellcheck": "false",
+                    },
+                )
+        except Exception as e:
+            logger.warning("WB HTTP request failed: %s, using mock", e)
+            return self._mock_products(parsed)
 
         if not isinstance(data, dict):
             logger.warning("WB returned non-dict, falling back to mock")
@@ -130,7 +134,8 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
 
         products = (data.get("data") or {}).get("products") or []
         if not products:
-            return []
+            logger.info("WB returned no products for %r, using mock", query)
+            return self._mock_products(parsed)
 
         result: list[MarketplaceProduct] = []
         for raw in products[:limit]:

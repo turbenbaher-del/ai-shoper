@@ -46,16 +46,20 @@ class OzonAdapter(BaseMarketplaceAdapter):
             "layout_page_index": "1",
         }
 
-        async with MarketplaceClient(timeout=15.0) as http:
-            data = await http.get_json(
-                OZON_COMPOSER_URL,
-                params=composer_params,
-                headers={
-                    "Accept-Language": "ru-RU,ru;q=0.9",
-                    "Referer": f"{OZON_BASE}/search/?text={query}",
-                    "x-o3-app-name": "dweb_client",
-                },
-            )
+        try:
+            async with MarketplaceClient(timeout=15.0) as http:
+                data = await http.get_json(
+                    OZON_COMPOSER_URL,
+                    params=composer_params,
+                    headers={
+                        "Accept-Language": "ru-RU,ru;q=0.9",
+                        "Referer": f"{OZON_BASE}/search/?text={query}",
+                        "x-o3-app-name": "dweb_client",
+                    },
+                )
+        except Exception as e:
+            logger.warning("Ozon HTTP request failed: %s, using mock", e)
+            return self._mock_products(parsed)
 
         products = self._extract_products(data) if isinstance(data, dict) else []
         if not products:
