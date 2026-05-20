@@ -99,6 +99,9 @@ async def run_search_pipeline(query: str, user, city: str | None = None) -> dict
         # Heuristic fallback: топ по соотношению rating/price
         ranked_list = _heuristic_rank(filtered[:TOP3_DEFAULT])
 
+    # Обеспечиваем разнообразие маркетплейсов — заменяем дубли другими из analyzed
+    ranked_list = _diversify_marketplaces(ranked_list, analyzed)
+
     # ── Шаг 6: Сборка карточек + share text ──────────────────────────────
     logger.info("Pipeline step 6: assemble result")
     products_out = _assemble_products(ranked_list, raw_products, analyzed)
@@ -230,6 +233,48 @@ def _compact_product(p: MarketplaceProduct) -> dict:
         "rating": p.rating,
         "reviews_count": p.reviews_count,
     }
+
+
+def _diversify_marketplaces(ranked: list[dict], analyzed: list[dict]) -> list[dict]:
+    """Если все топ-N из одного маркетплейса — заменяет дубли лучшими из других."""
+    if len(ranked) < 2:
+        return ranked
+    marketplaces_used = {r["marketplace"] for r in ranked if r.get("marketplace")}
+    if len(marketplaces_used) > 1:
+        return ranked  # уже разнообразно
+
+    # Все из одного маркетплейса — находим кандидатов из других
+    primary_mp = next(iter(marketplaces_used), None)
+    extras = [
+        a for a in analyzed
+        if a.get("marketplace") != primary_mp and not any(r["sku"] == a["sku"] for r in ranked)
+    ]
+    if not extras:
+        return ranked
+
+    result = [ranked[0]]  # оставляем первое место
+    used_mps = {ranked[0]["marketplace"]}
+    for extra in extras:
+        if extra.get("marketplace") not in used_mps and len(result) < TOP3_DEFAULT:
+            result.append({
+                "rank": len(result) + 1,
+                "sku": extra["sku"],
+                "marketplace": extra.get("marketplace", ""),
+                "reason": "Альтернатива на другом маркетплейсе",
+                "score": 40,
+            })
+            used_mps.add(extra.get("marketplace", ""))
+
+    # Добираем оставшимися из ranked если нужно
+    for r in ranked[1:]:
+        if len(result) >= TOP3_DEFAULT:
+            break
+        if not any(x["sku"] == r["sku"] for x in result):
+            result.append({**r, "rank": len(result) + 1})
+
+    for i, r in enumerate(result, 1):
+        r["rank"] = i
+    return result[:TOP3_DEFAULT]
 
 
 def _heuristic_rank(products: list[MarketplaceProduct]) -> list[dict]:

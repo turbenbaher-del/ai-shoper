@@ -91,21 +91,36 @@ class OzonAdapter(BaseMarketplaceAdapter):
 
         return result or self._mock_products(parsed)
 
-    def _extract_products(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        widget_states = data.get("widgetStates") or {}
-        products: list[dict[str, Any]] = []
+    _PRODUCT_WIDGET_PREFIXES = (
+        "searchResultsV2", "tileGridDesktop", "tileGrid-", "searchV2",
+        "universalSearch", "searchBrand", "catalogDesktop",
+    )
 
+    def _extract_products(self, data: dict[str, Any]) -> list[dict[str, Any]]:
+        import json as _json
+
+        widget_states = data.get("widgetStates") or {}
+        if widget_states:
+            sample_keys = list(widget_states.keys())[:8]
+            logger.debug("Ozon widgetStates keys sample: %s", sample_keys)
+        else:
+            logger.warning("Ozon response has no widgetStates — bot block or empty page?")
+
+        products: list[dict[str, Any]] = []
         for key, raw_state in widget_states.items():
-            if not key.startswith("searchResultsV2") and not key.startswith("tileGridDesktop"):
+            if not any(key.startswith(p) for p in self._PRODUCT_WIDGET_PREFIXES):
                 continue
             try:
-                import json
-                state = json.loads(raw_state) if isinstance(raw_state, str) else raw_state
+                state = _json.loads(raw_state) if isinstance(raw_state, str) else raw_state
             except Exception:
                 continue
-            items = state.get("items") or []
+            items = state.get("items") or state.get("searchResults") or []
+            if items:
+                logger.debug("Ozon found %d items in widget %s", len(items), key)
             products.extend(items)
 
+        if not products:
+            logger.info("Ozon: no products in any widget (total widgets=%d)", len(widget_states))
         return products
 
     def _build_product(self, raw: dict[str, Any]) -> MarketplaceProduct | None:

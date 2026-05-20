@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Sentry
     sentry_dsn: str = ""
 
+    # Proxy for marketplace requests (needed on Railway EU — Russian sites block datacenter IPs)
+    # Format: "http://user:pass@host:port" or "socks5://user:pass@host:port"
+    # Free option: ScraperAPI — http://scraperapi:<api_key>@proxy-server.scraperapi.com:8001
+    marketplace_proxy_url: str = ""
+
     # Misc
     env: str = "development"
     log_level: str = "INFO"

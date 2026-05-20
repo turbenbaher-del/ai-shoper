@@ -83,12 +83,23 @@ class MarketplaceClient:
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "MarketplaceClient":
-        self._client = httpx.AsyncClient(
-            timeout=self.timeout,
-            headers={"User-Agent": self.ua, "Accept": "application/json,text/plain,*/*"},
-            follow_redirects=True,
-            http2=True,
-        )
+        from app.config import settings  # lazy import to avoid circular
+
+        client_kwargs: dict = {
+            "timeout": self.timeout,
+            "headers": {"User-Agent": self.ua, "Accept": "application/json,text/plain,*/*"},
+            "follow_redirects": True,
+        }
+        if settings.marketplace_proxy_url:
+            client_kwargs["proxy"] = settings.marketplace_proxy_url
+            logger.debug("Using proxy: %s", settings.marketplace_proxy_url[:30])
+        try:
+            client_kwargs["http2"] = True
+            self._client = httpx.AsyncClient(**client_kwargs)
+        except Exception:
+            # h2 package not installed — fall back to HTTP/1.1
+            client_kwargs.pop("http2", None)
+            self._client = httpx.AsyncClient(**client_kwargs)
         return self
 
     async def __aexit__(self, *exc) -> None:

@@ -78,7 +78,42 @@ async def unhandled_error_handler(_: Request, exc: Exception):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "1.0.0"}
+    return {"status": "ok", "version": "1.0.0", "proxy": bool(settings.marketplace_proxy_url)}
+
+
+@app.get("/api/v1/admin/test-marketplaces")
+async def test_marketplaces(secret: str, query: str = "наушники"):
+    """Тест маркетплейсов. Показывает: реальные данные или мок, первая картинка."""
+    if secret != settings.secret_key:
+        return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+
+    from app.marketplaces.base import _adapters
+    from app.ai.schemas import ParsedRequest
+
+    parsed = ParsedRequest(category=query, keywords=[query])
+    results: dict = {}
+    for name, adapter in _adapters().items():
+        try:
+            products = await adapter.search(parsed, limit=3)
+            is_mock = all("mock" in p.sku for p in products)
+            results[name] = {
+                "count": len(products),
+                "real_data": not is_mock,
+                "first": {
+                    "sku": products[0].sku,
+                    "name": products[0].name[:60],
+                    "price": products[0].price,
+                    "image": products[0].image_url,
+                } if products else None,
+            }
+        except Exception as e:
+            results[name] = {"error": str(e)}
+
+    return {
+        "query": query,
+        "proxy_configured": bool(settings.marketplace_proxy_url),
+        "marketplaces": results,
+    }
 
 
 @app.post("/api/v1/admin/setup-webhook")
