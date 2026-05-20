@@ -47,6 +47,7 @@ export interface User {
   premium_until: string | null
   free_searches_used: number
   push_consent: boolean
+  city: string | null
 }
 
 interface AppState {

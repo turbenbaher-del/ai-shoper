@@ -16,6 +16,7 @@ export async function saveQuiz(data: {
   marketplaces: string[]
   priority: string
   categories: string[]
+  city?: string
 }): Promise<void> {
   await api.post('/quiz', data)
 }

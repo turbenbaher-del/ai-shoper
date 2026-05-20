@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
+export const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 let authToken: string | null = null
 
@@ -17,14 +17,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const resp = await fetch(`${BASE_URL}${path}`, { ...options, headers })
 
-  if (resp.status === 402) {
-    const data = await resp.json()
-    throw Object.assign(new Error('paywall'), { paywall: true, detail: data })
-  }
+  // TODO: re-enable before production launch
+  // if (resp.status === 402) {
+  //   const data = await resp.json()
+  //   throw Object.assign(new Error('paywall'), { paywall: true, detail: data })
+  // }
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ detail: resp.statusText }))
-    throw new Error(err.detail || `HTTP ${resp.status}`)
+    const detail = err.detail
+    const msg = typeof detail === 'string'
+      ? detail
+      : detail?.message || `Ошибка сервера (${resp.status})`
+    throw new Error(msg)
   }
 
   return resp.json() as Promise<T>

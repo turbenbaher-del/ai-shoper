@@ -10,7 +10,7 @@ import { PaywallScreen } from './screens/PaywallScreen'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useTelegram } from './hooks/useTelegram'
 import { authTelegram } from './api/auth'
-import { setToken } from './api/client'
+import { setToken, api } from './api/client'
 import { useAppStore } from './store/appStore'
 
 function AppInner() {
@@ -27,6 +27,8 @@ function AppInner() {
         setToken(token)
         storeSetToken(token)
         setUser(u)
+        // Сброс счётчика поисков на период тестирования
+        api.post('/search/reset-limit', {}).catch(() => {})
         setScreen(u.quiz_completed ? 'home' : 'welcome')
       } catch (e) {
         console.error('Auth failed:', e)
@@ -49,6 +51,9 @@ function AppInner() {
     paywall: <PaywallScreen />,
   }
 
+  // Paywall отключён на время тестирования — редиректим на home
+  const activeScreen = screen === 'paywall' ? 'home' : screen
+
   return (
     <div
       style={{
@@ -60,7 +65,7 @@ function AppInner() {
         overflow: 'hidden',
       }}
     >
-      {screenMap[screen]}
+      {screenMap[activeScreen]}
     </div>
   )
 }

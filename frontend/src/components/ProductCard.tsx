@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Badge } from './Badge'
 import { Button } from './Button'
+import { BASE_URL } from '../api/client'
 import type { Product } from '../store/appStore'
 
 const RANK_MEDALS = ['🥇', '🥈', '🥉']
@@ -16,12 +17,17 @@ export function ProductCard({ product, queryId, onTrack }: ProductCardProps) {
   const isWinner = product.rank === 1
   const medal = RANK_MEDALS[product.rank - 1] ?? ''
   const rankLabel = RANK_LABELS[product.rank - 1] ?? ''
+  const [imgFailed, setImgFailed] = useState(false)
 
   const bestPrice = product.prices.find((p) => p.is_best)
 
   function handleBuy() {
-    const clickUrl = `/api/v1/search/${queryId}/${product.rank - 1}/click`
-    window.open(clickUrl, '_blank')
+    const url = bestPrice?.url || product.prices[0]?.url
+    if (url) {
+      // Трекаем клик асинхронно, не блокируем переход
+      fetch(`${BASE_URL}/search/${queryId}/${product.rank - 1}/click`, { method: 'GET' }).catch(() => {})
+      window.open(url, '_blank')
+    }
   }
 
   function handleShare() {
@@ -65,8 +71,13 @@ export function ProductCard({ product, queryId, onTrack }: ProductCardProps) {
           overflow: 'hidden',
         }}
       >
-        {product.image_url ? (
-          <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {product.image_url && !imgFailed ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={() => setImgFailed(true)}
+          />
         ) : (
           <i className="ti ti-photo" style={{ fontSize: 32, color: 'var(--text-dim)' }} />
         )}

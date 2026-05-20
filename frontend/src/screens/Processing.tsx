@@ -36,11 +36,7 @@ export function Processing() {
       })
       .catch((err) => {
         clearInterval(stageTimer)
-        if (err.paywall) {
-          setScreen('paywall')
-        } else {
-          setError(err.message ?? 'Что-то пошло не так. Попробуй ещё раз.')
-        }
+        setError(err.message ?? 'Что-то пошло не так. Попробуй ещё раз.')
       })
 
     return () => clearInterval(stageTimer)
