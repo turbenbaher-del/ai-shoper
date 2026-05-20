@@ -13,7 +13,7 @@ from app.config import settings
 from app.db import get_session
 from app.models.user import User
 from app.schemas.user import AuthRequest, AuthResponse, QuizData, UserOut
-from app.api.deps import get_current_user, register_session
+from app.api.deps import create_token, get_current_user, register_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,11 +37,6 @@ def validate_telegram_init_data(init_data: str) -> dict:
         raise ValueError("Invalid hash")
 
     return json.loads(parsed.get("user", "{}"))
-
-
-def _make_token() -> str:
-    import secrets
-    return secrets.token_urlsafe(32)
 
 
 @router.post("/telegram", response_model=AuthResponse)
@@ -72,8 +67,8 @@ async def auth_telegram(body: AuthRequest, session: AsyncSession = Depends(get_s
     await session.commit()
     await session.refresh(user)
 
-    token = _make_token()
-    register_session(token, user.id)  # регистрируем токен для авторизации
+    token = create_token(user.id)
+    register_session(token, user.id)
 
     return AuthResponse(user=UserOut.model_validate(user), token=token, is_new=is_new)
 
