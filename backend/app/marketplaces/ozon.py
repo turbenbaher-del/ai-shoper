@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 OZON_BASE = "https://www.ozon.ru"
 OZON_COMPOSER_URL = f"{OZON_BASE}/api/composer-api.bx/page/json/v2"
 
+OZON_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
 
 class OzonAdapter(BaseMarketplaceAdapter):
     name = "ozon"
@@ -37,24 +42,28 @@ class OzonAdapter(BaseMarketplaceAdapter):
         if not query:
             return []
 
-        # Композер принимает URL внутреннего маршрута. Параметры — как в строке адреса.
-        url_param = "/category/" if False else "/search/"
         inner_qs = urlencode({"text": query, "from_global": "true"})
         composer_params = {
-            "url": f"{url_param}?{inner_qs}",
+            "url": f"/search/?{inner_qs}",
             "layout_container": "categorySearchMegapagination",
             "layout_page_index": "1",
         }
 
         try:
-            async with MarketplaceClient(timeout=15.0) as http:
+            async with MarketplaceClient(timeout=15.0, ua=OZON_UA) as http:
                 data = await http.get_json(
                     OZON_COMPOSER_URL,
                     params=composer_params,
                     headers={
+                        "Accept": "application/json, text/plain, */*",
                         "Accept-Language": "ru-RU,ru;q=0.9",
                         "Referer": f"{OZON_BASE}/search/?text={quote(query)}",
                         "x-o3-app-name": "dweb_client",
+                        "x-o3-app-version": "3.50.0",
+                        "x-o3-locale": "ru",
+                        "Sec-Fetch-Dest": "empty",
+                        "Sec-Fetch-Mode": "cors",
+                        "Sec-Fetch-Site": "same-origin",
                     },
                 )
         except Exception as e:
@@ -83,11 +92,6 @@ class OzonAdapter(BaseMarketplaceAdapter):
         return result or self._mock_products(parsed)
 
     def _extract_products(self, data: dict[str, Any]) -> list[dict[str, Any]]:
-        """
-        composer-api возвращает JSON с разделом `widgetStates`. Карточки лежат
-        в виджете `searchResultsV2-...` как сериализованный JSON.
-        Структура нестабильна — обрабатываем максимально оборонительно.
-        """
         widget_states = data.get("widgetStates") or {}
         products: list[dict[str, Any]] = []
 
@@ -105,17 +109,14 @@ class OzonAdapter(BaseMarketplaceAdapter):
         return products
 
     def _build_product(self, raw: dict[str, Any]) -> MarketplaceProduct | None:
-        # У Ozon карточек разные форматы — попытка достать поля без падения.
         sku = str(raw.get("sku") or raw.get("id") or "")
         if not sku:
             return None
 
-        # Цена: ищем в `mainState` → `priceV2` или `atom.priceV2.price`
         price = self._extract_price(raw)
         if price is None:
             return None
 
-        # Название: главное состояние или атом textSmall
         name = self._extract_name(raw)
         if not name:
             return None
@@ -140,7 +141,6 @@ class OzonAdapter(BaseMarketplaceAdapter):
         )
 
     def _iter_atoms(self, raw: dict[str, Any]):
-        """Возвращает все атомы из mainState (с фолбэками)."""
         ms = raw.get("mainState") or raw.get("cellTrackingInfo") or []
         if isinstance(ms, list):
             for cell in ms:
@@ -150,7 +150,6 @@ class OzonAdapter(BaseMarketplaceAdapter):
     def _extract_price(self, raw: dict[str, Any]) -> int | None:
         for atype, atom in self._iter_atoms(raw):
             if atype in ("priceV2", "price"):
-                # price бывает строкой типа "12 990 ₽"
                 price_block = (atom.get("priceV2") or atom).get("price") if atom else None
                 if isinstance(price_block, list) and price_block:
                     text = price_block[0].get("text", "")
@@ -183,12 +182,10 @@ class OzonAdapter(BaseMarketplaceAdapter):
     def _extract_rating(self, raw: dict[str, Any]) -> float | None:
         for atype, atom in self._iter_atoms(raw):
             if atype in ("labelList", "rating"):
-                # Ищем "4.5" в текстовых полях
                 items = atom.get("labelList", {}).get("items") or []
                 for it in items:
                     title = it.get("title", "")
                     try:
-                        # Часто формат "4.5 · 1234 отзыва"
                         first = title.split()[0].replace(",", ".")
                         return float(first)
                     except (ValueError, IndexError):
@@ -214,11 +211,7 @@ class OzonAdapter(BaseMarketplaceAdapter):
         return f"{original_url}{sep}partner_id={settings.ozon_client_id}"
 
     async def get_current_price(self, sku: str) -> int | None:
-        """
-        Получить актуальную цену товара по SKU.
-        Используется price_tracker воркером.
-        """
-        async with MarketplaceClient(timeout=10.0) as http:
+        async with MarketplaceClient(timeout=10.0, ua=OZON_UA) as http:
             data = await http.get_json(
                 OZON_COMPOSER_URL,
                 params={"url": f"/product/{sku}/"},
@@ -227,7 +220,6 @@ class OzonAdapter(BaseMarketplaceAdapter):
         if not isinstance(data, dict):
             return None
 
-        # Цена лежит в widget webPrice / webStickyProducts
         widget_states = data.get("widgetStates") or {}
         for key, raw_state in widget_states.items():
             if "webPrice" not in key and "webStickyProducts" not in key:

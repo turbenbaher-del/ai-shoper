@@ -28,6 +28,24 @@ WB_DETAIL_URL = "https://card.wb.ru/cards/v2/detail"
 # Российский dest по умолчанию (Москва). Можно менять под пользователя.
 DEFAULT_DEST = -1257786
 
+WB_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
+_WB_HEADERS = {
+    "Accept": "*/*",
+    "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Origin": "https://www.wildberries.ru",
+    "Referer": "https://www.wildberries.ru/",
+    "sec-ch-ua": '"Google Chrome";v="124", "Chromium";v="124", "Not-A.Brand";v="99"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
+}
+
 
 def _wb_image_url(product_id: int) -> str:
     """
@@ -36,8 +54,6 @@ def _wb_image_url(product_id: int) -> str:
     """
     vol = product_id // 100000
     part = product_id // 1000
-    # Границы basket-N для текущих ID (актуально на 2024-2026).
-    # Если попадаем за пределы — используем дефолтный (новые товары).
     if vol < 144:        basket = 1
     elif vol < 288:      basket = 2
     elif vol < 432:      basket = 3
@@ -57,25 +73,18 @@ def _wb_image_url(product_id: int) -> str:
     elif vol < 3050:     basket = 17
     elif vol < 3263:     basket = 18
     elif vol < 3477:     basket = 19
-    else:                basket = 20  # для новых товаров; URL может вернуть 404 — нестрашно
+    else:                basket = 20
     return f"https://basket-{basket:02d}.wbbasket.ru/vol{vol}/part{part}/{product_id}/images/big/1.webp"
 
 
 def _price_from_product(raw: dict[str, Any]) -> int | None:
-    """
-    Возвращает финальную цену в рублях.
-    WB цены приходят в копейках (×100), есть несколько путей:
-      sizes[0].price.{total,product,basic,logistics}  — новая структура v9/v2
-      salePriceU / priceU                              — старая структура (fallback)
-    """
     sizes = raw.get("sizes") or []
     if sizes:
         price = (sizes[0].get("price") or {})
-        # `total` — что увидит покупатель с учётом всех скидок
         for key in ("total", "product", "basic"):
             v = price.get(key)
             if isinstance(v, (int, float)) and v > 0:
-                return int(v) // 100  # копейки → рубли
+                return int(v) // 100
 
     for key in ("salePriceU", "priceU"):
         v = raw.get(key)
@@ -85,11 +94,6 @@ def _price_from_product(raw: dict[str, Any]) -> int | None:
 
 
 def _reviews_sample(raw: dict[str, Any]) -> str:
-    """
-    На странице поиска отзывы не отдаются. Здесь возвращаем placeholder из
-    publicly доступных полей (rating + feedbacks count) — Claude этого хватит
-    для базового анализа. Полные отзывы тянутся отдельно при необходимости.
-    """
     rating = raw.get("rating") or raw.get("reviewRating")
     feedbacks = raw.get("feedbacks") or raw.get("nmReviewRating")
     parts = []
@@ -109,7 +113,7 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
             return []
 
         try:
-            async with MarketplaceClient() as http:
+            async with MarketplaceClient(ua=WB_UA) as http:
                 data = await http.get_json(
                     WB_SEARCH_URL,
                     params={
@@ -122,7 +126,9 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
                         "sort": "popular",
                         "spp": "30",
                         "suppressSpellcheck": "false",
+                        "limit": limit,
                     },
+                    headers=_WB_HEADERS,
                 )
         except Exception as e:
             logger.warning("WB HTTP request failed: %s, using mock", e)
@@ -148,13 +154,12 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
                 logger.warning("Failed to parse WB product %s: %s", raw.get("id"), e)
                 continue
 
-        # Фильтр бюджета
         if parsed.budget_max:
             result = [p for p in result if p.price <= parsed.budget_max]
         if parsed.budget_min:
             result = [p for p in result if p.price >= parsed.budget_min]
 
-        return result
+        return result or self._mock_products(parsed)
 
     def _parse_product(self, raw: dict[str, Any], parsed: ParsedRequest) -> MarketplaceProduct | None:
         product_id = raw.get("id")
@@ -191,7 +196,6 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
         )
 
     def _make_cpa_url(self, original_url: str) -> str:
-        """Оборачивает ссылку WB через Admitad deeplink."""
         if not settings.admitad_api_key:
             return original_url
         encoded = quote(original_url, safe="")
@@ -200,16 +204,12 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
         return f"https://ad.admitad.com/g/{settings.admitad_api_key}/?ulp={encoded}{suffix}"
 
     async def get_current_price(self, sku: str) -> int | None:
-        """
-        Получить актуальную цену товара по SKU.
-        Используется price_tracker воркером.
-        """
         try:
             nm_id = int(sku)
         except ValueError:
             return None
 
-        async with MarketplaceClient() as http:
+        async with MarketplaceClient(ua=WB_UA) as http:
             data = await http.get_json(
                 WB_DETAIL_URL,
                 params={
@@ -219,6 +219,7 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
                     "nm": nm_id,
                     "spp": "30",
                 },
+                headers=_WB_HEADERS,
             )
 
         if not isinstance(data, dict):
