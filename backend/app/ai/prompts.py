@@ -5,64 +5,46 @@
 Tone of voice — из ТЗ раздел 3.2 (прямой, конкретный, на "ты", без украшательств).
 """
 
-SUPPORTED_CATEGORIES = (
-    "робот-пылесос",
-    "наушники",
-    "зимняя куртка",
-    "кофемашина",
-    "смарт-часы",
-)
-
 
 # ── Шаг 1: Парсинг запроса ───────────────────────────────────────────────────
 
-PARSE_SYSTEM = f"""Ты парсер запросов для шопинг-ассистента на русском.
+PARSE_SYSTEM = """Ты парсер запросов для шопинг-ассистента на русском.
 
 Извлекай из запроса покупателя структуру и верни СТРОГО JSON без markdown:
-{{
-  "category": "<точная категория из поддерживаемых>",
+{
+  "category": "<категория товара на русском>",
   "budget_max": <int или null>,
   "budget_min": <int или null>,
   "requirements": ["<требования: 'шумоподавление', 'длинная шерсть', 'для офиса'>"],
   "use_case": "<контекст использования или null>",
   "who_for": "<кому: 'для семьи', 'себе', 'для кота' или null>",
-  "keywords": ["<ключевые слова для поиска>"],
+  "keywords": ["<ключевые слова для поиска на русском>"],
   "needs_clarification": <true/false>,
   "clarification_question": "<вопрос или null>"
-}}
-
-Поддерживаемые категории: {", ".join(SUPPORTED_CATEGORIES)}.
+}
 
 Правила парсинга бюджета:
   - "до 30к", "до 30 тысяч", "до 30000" → budget_max=30000
   - "от 5 до 15к" → budget_min=5000, budget_max=15000
   - "не дороже 20к" → budget_max=20000
 
-Когда нужно уточнение (needs_clarification=true):
-  - Категория не из поддерживаемых → попроси выбрать из списка
-  - Запрос слишком общий ("что-нибудь хорошее") → попроси уточнить категорию/бюджет
+ВАЖНО: needs_clarification=true ТОЛЬКО если запрос совсем бессмысленный ("хочу что-нибудь", "не знаю").
+Для ЛЮБОГО конкретного товара (наушники, телефон, куртка, ноутбук и т.д.) — needs_clarification=false,
+даже если нет бюджета или деталей. Просто ищи по категории.
 
 Примеры:
 
 Запрос: "робот-пылесос до 30к для кота с длинной шерстью"
-Ответ: {{"category": "робот-пылесос", "budget_max": 30000, "budget_min": null,
-  "requirements": ["для шерсти животных", "длинная шерсть"],
-  "use_case": "уборка кошачьей шерсти", "who_for": "для кота",
-  "keywords": ["робот-пылесос", "для шерсти", "турбощётка"],
-  "needs_clarification": false, "clarification_question": null}}
+Ответ: {"category": "робот-пылесос", "budget_max": 30000, "budget_min": null, "requirements": ["для шерсти животных", "длинная шерсть"], "use_case": "уборка кошачьей шерсти", "who_for": "для кота", "keywords": ["робот-пылесос", "для шерсти", "турбощётка"], "needs_clarification": false, "clarification_question": null}
 
 Запрос: "наушники"
-Ответ: {{"category": "наушники", "budget_max": null, "budget_min": null,
-  "requirements": [], "use_case": null, "who_for": null,
-  "keywords": ["наушники"],
-  "needs_clarification": true,
-  "clarification_question": "Какой бюджет и тип — для спорта, метро, дома?"}}
+Ответ: {"category": "наушники", "budget_max": null, "budget_min": null, "requirements": [], "use_case": null, "who_for": null, "keywords": ["наушники"], "needs_clarification": false, "clarification_question": null}
 
-Запрос: "стиральная машина"
-Ответ: {{"category": "стиральная машина", "budget_max": null, "budget_min": null,
-  "requirements": [], "use_case": null, "who_for": null, "keywords": [],
-  "needs_clarification": true,
-  "clarification_question": "Пока ищу в категориях: робот-пылесос, наушники, куртка, кофемашина, смарт-часы. Выбери что-то из них?"}}
+Запрос: "смартфон до 50000"
+Ответ: {"category": "смартфон", "budget_max": 50000, "budget_min": null, "requirements": [], "use_case": null, "who_for": null, "keywords": ["смартфон", "телефон"], "needs_clarification": false, "clarification_question": null}
+
+Запрос: "хочу что-нибудь"
+Ответ: {"category": "", "budget_max": null, "budget_min": null, "requirements": [], "use_case": null, "who_for": null, "keywords": [], "needs_clarification": true, "clarification_question": "Что именно ищешь? Например: наушники, куртка, робот-пылесос."}
 """
 
 PARSE_USER = "Запрос покупателя: {query}"
