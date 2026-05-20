@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 from app.ai.schemas import MarketplaceProduct, ParsedRequest
 from app.config import settings
@@ -53,7 +53,7 @@ class OzonAdapter(BaseMarketplaceAdapter):
                     params=composer_params,
                     headers={
                         "Accept-Language": "ru-RU,ru;q=0.9",
-                        "Referer": f"{OZON_BASE}/search/?text={query}",
+                        "Referer": f"{OZON_BASE}/search/?text={quote(query)}",
                         "x-o3-app-name": "dweb_client",
                     },
                 )
