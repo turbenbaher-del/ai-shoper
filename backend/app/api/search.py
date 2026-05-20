@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -14,9 +15,11 @@ from app.models.query import Query
 from app.models.user import User
 from app.schemas.search import QueryHistoryItem, SearchRequest, SearchResponse
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/search", tags=["search"])
 
-FREE_SEARCH_LIMIT = 3
+FREE_SEARCH_LIMIT = 9999  # TODO: restore to 3 before production launch
 RATE_LIMIT_MAX = 10       # запросов
 RATE_LIMIT_WINDOW = 60.0  # секунд
 
@@ -54,15 +57,17 @@ async def search(
 ):
     _check_rate_limit(user.id)
     _reset_if_needed(user)
+    logger.info("Search request: user=%s used=%s limit=%s premium=%s", user.id, user.free_searches_used, FREE_SEARCH_LIMIT, user.is_premium)
 
-    if not user.is_premium and user.free_searches_used >= FREE_SEARCH_LIMIT:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={"paywall": True, "message": "Исчерпан лимит бесплатных запросов"},
-        )
+    # TODO: re-enable paywall before production launch
+    # if not user.is_premium and user.free_searches_used >= FREE_SEARCH_LIMIT:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_402_PAYMENT_REQUIRED,
+    #         detail={"paywall": True, "message": "Исчерпан лимит бесплатных запросов"},
+    #     )
 
     start = time.monotonic()
-    result = await run_search_pipeline(body.query, user)
+    result = await run_search_pipeline(body.query, user, city=user.city)
     elapsed = round(time.monotonic() - start, 1)
 
     if result.get("needs_clarification"):
@@ -102,6 +107,17 @@ async def search(
         share_text=result.get("share_text", ""),
         processing_time_seconds=elapsed,
     )
+
+
+@router.post("/reset-limit")
+async def reset_limit(
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Временный эндпоинт для сброса счётчика поисков. TODO: удалить перед релизом."""
+    user.free_searches_used = 0
+    await session.commit()
+    return {"ok": True, "free_searches_used": 0}
 
 
 @router.get("/history", response_model=list[QueryHistoryItem])

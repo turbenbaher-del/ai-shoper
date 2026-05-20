@@ -32,6 +32,9 @@ class User(Base):
     premium_until: Mapped[datetime | None] = mapped_column(TimestampTZ)
     premium_plan: Mapped[str | None] = mapped_column(String(16))
 
+    # Локация
+    city: Mapped[str | None] = mapped_column(Text)
+
     # Согласия
     pdn_consent_at: Mapped[datetime | None] = mapped_column(TimestampTZ)
     push_consent: Mapped[bool] = mapped_column(Boolean, default=False)

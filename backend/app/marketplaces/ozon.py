@@ -246,6 +246,7 @@ class OzonAdapter(BaseMarketplaceAdapter):
 
     def _mock_products(self, parsed: ParsedRequest) -> list[MarketplaceProduct]:
         keywords = " ".join(parsed.keywords[:2]) or parsed.category
+        seeds = [f"ozon-{parsed.category}-{i}" for i in range(3)]
         return [
             MarketplaceProduct(
                 sku=f"ozon-mock-{i}",
@@ -255,7 +256,7 @@ class OzonAdapter(BaseMarketplaceAdapter):
                 rating=4.5 - i * 0.1,
                 reviews_count=150 - i * 20,
                 url=f"https://www.ozon.ru/product/mock-{i}",
-                image_url=None,
+                image_url=f"https://picsum.photos/seed/{seeds[i]}/300/300",
                 specs={"reviews_sample": "Mock-данные. Реальный API недоступен."},
             )
             for i in range(3)

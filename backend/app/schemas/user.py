@@ -13,6 +13,7 @@ class UserOut(BaseModel):
     premium_until: datetime | None
     free_searches_used: int
     push_consent: bool
+    city: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -32,6 +33,7 @@ class QuizData(BaseModel):
     marketplaces: list[str]
     priority: str
     categories: list[str]
+    city: str = ""
 
 
 class PdnConsentRequest(BaseModel):

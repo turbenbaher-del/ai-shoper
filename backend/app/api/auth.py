@@ -81,6 +81,8 @@ async def save_quiz(
 ):
     user.quiz_data = body.model_dump()
     user.quiz_completed = True
+    if body.city:
+        user.city = body.city.strip()
     await session.commit()
     return {"ok": True}
 

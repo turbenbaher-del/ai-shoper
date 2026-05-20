@@ -42,15 +42,16 @@ REVIEWS_PARALLEL_LIMIT = 6
 TOP3_DEFAULT = 3
 
 
-async def run_search_pipeline(query: str, user) -> dict:
+async def run_search_pipeline(query: str, user, city: str | None = None) -> dict:
     """Оркестрирует все шаги пайплайна. Возвращает dict с готовыми products."""
 
     # ── Шаг 1: Парсинг запроса (Sonnet) ──────────────────────────────────
-    logger.info("Pipeline step 1: parse query")
+    logger.info("Pipeline step 1: parse query (city=%s)", city)
+    city_context = f"\nГород пользователя: {city}" if city else ""
     try:
         parsed_data = await call_claude_json(
             system=PARSE_SYSTEM,
-            user_message=PARSE_USER.format(query=query),
+            user_message=PARSE_USER.format(query=query, city_context=city_context),
             model=MODEL_SONNET,
             cache_system=True,
         )

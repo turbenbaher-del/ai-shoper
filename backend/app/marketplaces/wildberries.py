@@ -230,6 +230,7 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
 
     def _mock_products(self, parsed: ParsedRequest) -> list[MarketplaceProduct]:
         keywords = " ".join(parsed.keywords[:2]) or parsed.category
+        seeds = [f"wb-{parsed.category}-{i}" for i in range(3)]
         return [
             MarketplaceProduct(
                 sku=f"wb-mock-{i}",
@@ -239,7 +240,7 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
                 rating=4.3 - i * 0.15,
                 reviews_count=200 - i * 30,
                 url=f"https://www.wildberries.ru/catalog/mock-{i}/detail.aspx",
-                image_url=None,
+                image_url=f"https://picsum.photos/seed/{seeds[i]}/300/300",
                 specs={"reviews_sample": "Mock-данные. Реальный API недоступен."},
             )
             for i in range(3)

@@ -140,6 +140,7 @@ class YandexMarketAdapter(BaseMarketplaceAdapter):
 
     def _mock_products(self, parsed: ParsedRequest) -> list[MarketplaceProduct]:
         keywords = " ".join(parsed.keywords[:2]) or parsed.category
+        seeds = [f"ym-{parsed.category}-{i}" for i in range(3)]
         return [
             MarketplaceProduct(
                 sku=f"ym-mock-{i}",
@@ -149,7 +150,7 @@ class YandexMarketAdapter(BaseMarketplaceAdapter):
                 rating=4.4 - i * 0.12,
                 reviews_count=120 - i * 15,
                 url=f"https://market.yandex.ru/product/mock-{i}",
-                image_url=None,
+                image_url=f"https://picsum.photos/seed/{seeds[i]}/300/300",
                 specs={"reviews_sample": "Mock-данные. Требуется YANDEX_MARKET_OAUTH."},
             )
             for i in range(3)
