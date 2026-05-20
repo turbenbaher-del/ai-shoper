@@ -23,6 +23,7 @@ from app.marketplaces.base import BaseMarketplaceAdapter
 logger = logging.getLogger(__name__)
 
 WB_SEARCH_URL = "https://search.wb.ru/exactmatch/ru/common/v9/search"
+WB_SEARCH_URL_V4 = "https://search.wb.ru/exactmatch/ru/common/v4/search"
 WB_DETAIL_URL = "https://card.wb.ru/cards/v2/detail"
 
 # Российский dest по умолчанию (Москва). Можно менять под пользователя.
@@ -112,30 +113,14 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
         if not query:
             return []
 
-        try:
-            async with MarketplaceClient(ua=WB_UA) as http:
-                data = await http.get_json(
-                    WB_SEARCH_URL,
-                    params={
-                        "ab_testing": "false",
-                        "appType": "1",
-                        "curr": "rub",
-                        "dest": DEFAULT_DEST,
-                        "query": query,
-                        "resultset": "catalog",
-                        "sort": "popular",
-                        "spp": "30",
-                        "suppressSpellcheck": "false",
-                        "limit": limit,
-                    },
-                    headers=_WB_HEADERS,
-                )
-        except Exception as e:
-            logger.warning("WB HTTP request failed: %s, using mock", e)
-            return self._mock_products(parsed)
+        data = await self._fetch_search(query, limit, apptype="1", url=WB_SEARCH_URL)
+        if data is None:
+            # Fallback: mobile API (appType=32) — отдельный rate-limit
+            logger.info("WB v9/web failed, trying v4/mobile")
+            data = await self._fetch_search(query, limit, apptype="32", url=WB_SEARCH_URL_V4)
 
         if not isinstance(data, dict):
-            logger.warning("WB returned non-dict, falling back to mock")
+            logger.warning("WB all endpoints failed, falling back to mock")
             return self._mock_products(parsed)
 
         products = (data.get("data") or {}).get("products") or []
@@ -160,6 +145,29 @@ class WildberriesAdapter(BaseMarketplaceAdapter):
             result = [p for p in result if p.price >= parsed.budget_min]
 
         return result or self._mock_products(parsed)
+
+    async def _fetch_search(self, query: str, limit: int, apptype: str, url: str) -> dict | None:
+        try:
+            async with MarketplaceClient(ua=WB_UA) as http:
+                return await http.get_json(
+                    url,
+                    params={
+                        "ab_testing": "false",
+                        "appType": apptype,
+                        "curr": "rub",
+                        "dest": DEFAULT_DEST,
+                        "query": query,
+                        "resultset": "catalog",
+                        "sort": "popular",
+                        "spp": "30",
+                        "suppressSpellcheck": "false",
+                        "limit": limit,
+                    },
+                    headers=_WB_HEADERS,
+                )
+        except Exception as e:
+            logger.warning("WB HTTP request failed (%s): %s", url, e)
+            return None
 
     def _parse_product(self, raw: dict[str, Any], parsed: ParsedRequest) -> MarketplaceProduct | None:
         product_id = raw.get("id")

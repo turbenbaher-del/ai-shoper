@@ -87,7 +87,7 @@ class MarketplaceClient:
             timeout=self.timeout,
             headers={"User-Agent": self.ua, "Accept": "application/json,text/plain,*/*"},
             follow_redirects=True,
-            http2=False,
+            http2=True,
         )
         return self
 
@@ -152,6 +152,10 @@ class MarketplaceClient:
     async def get_json(self, url: str, **kwargs) -> dict | list | None:
         resp = await self.request("GET", url, **kwargs)
         if resp is None:
+            return None
+        ct = resp.headers.get("content-type", "")
+        if "html" in ct:
+            logger.warning("Non-JSON response (HTML) from %s — bot detection?", url)
             return None
         try:
             return resp.json()
